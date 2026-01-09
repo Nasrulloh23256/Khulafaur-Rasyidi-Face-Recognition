@@ -16,62 +16,14 @@ const euclideanDistance = (a: number[], b: number[]) => {
   return Math.sqrt(sum);
 };
 
-export default async function handler(req: NextApiRequest, res: NextApiResponse) {
-  if (req.method !== "POST") {
-    res.setHeader("Allow", "POST");
-    return res.status(405).json({ error: "Method not allowed" });
-  }
-
-  const { studentId, classId, descriptor } = req.body ?? {};
-  if (typeof studentId !== "string" || studentId.trim() === "") {
-    return res.status(400).json({ error: "Siswa wajib dipilih" });
-  }
-  if (typeof classId !== "string" || classId.trim() === "") {
-    return res.status(400).json({ error: "Kelas wajib dipilih" });
-  }
-  if (!Array.isArray(descriptor) || descriptor.length === 0) {
-    return res.status(400).json({ error: "Data wajah tidak valid" });
-  }
-  const inputDescriptor = descriptor.filter((value: unknown) => typeof value === "number");
-  if (inputDescriptor.length !== descriptor.length) {
-    return res.status(400).json({ error: "Data wajah tidak valid" });
-  }
-
-  const student = await prisma.student.findUnique({
-    where: { id: studentId },
-    select: {
-      id: true,
-      classId: true,
-      fullName: true,
-      studentNumber: true,
-      gender: true,
-      faceEmbedding: true,
-      class: { select: { name: true } },
-    },
-  });
-
-  if (!student) {
-    return res.status(404).json({ error: "Siswa tidak ditemukan" });
-  }
-
-  if (student.classId !== classId) {
-    return res.status(400).json({ error: "Siswa tidak terdaftar di kelas ini" });
-  }
-
-  const date = startOfDay(new Date());
-  const existingAttendance = await prisma.attendance.findUnique({
-    where: { studentId_date: { studentId, date } },
-    select: { id: true },
-  });
-  if (existingAttendance) {
-    return res.status(409).json({ error: "Siswa sudah absen hari ini" });
-  }
-
+const extractEmbeddings = (faceEmbedding: unknown) => {
   const embeddings: number[][] = [];
-  if (Array.isArray(student.faceEmbedding)) {
-    embeddings.push(student.faceEmbedding as number[]);
-  } else if (student.faceEmbedding && typeof student.faceEmbedding === "object") {
-    const embeddingObj = student.faceEmbedding as { mean?: unknown; samples?: unknown };
+  if (Array.isArray(faceEmbedding)) {
+    embeddings.push(faceEmbedding as number[]);
+    return embeddings;
+  }
+  if (faceEmbedding && typeof faceEmbedding === "object") {
+    const embeddingObj = faceEmbedding as { mean?: unknown; samples?: unknown };
     const samples = Array.isArray(embeddingObj.samples) ? embeddingObj.samples : [];
     const mean = Array.isArray(embeddingObj.mean) ? embeddingObj.mean : null;
     for (const sample of samples) {
@@ -89,33 +41,150 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
     }
   }
+  return embeddings;
+};
 
-  if (embeddings.length === 0) {
+export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  if (req.method !== "POST") {
+    res.setHeader("Allow", "POST");
+    return res.status(405).json({ error: "Method not allowed" });
+  }
+
+  const { studentId, classId, descriptor } = req.body ?? {};
+  const normalizedStudentId = typeof studentId === "string" ? studentId.trim() : "";
+  if (typeof classId !== "string" || classId.trim() === "") {
+    return res.status(400).json({ error: "Kelas wajib dipilih" });
+  }
+  if (!Array.isArray(descriptor) || descriptor.length === 0) {
+    return res.status(400).json({ error: "Data wajah tidak valid" });
+  }
+  const inputDescriptor = descriptor.filter((value: unknown) => typeof value === "number");
+  if (inputDescriptor.length !== descriptor.length) {
+    return res.status(400).json({ error: "Data wajah tidak valid" });
+  }
+
+  const buildMatch = (student: {
+    id: string;
+    fullName: string;
+    studentNumber: string | null;
+    gender: "MALE" | "FEMALE";
+    class?: { name: string | null } | null;
+  }) => ({
+    id: student.id,
+    fullName: student.fullName,
+    studentNumber: student.studentNumber,
+    gender: student.gender,
+    className: student.class?.name ?? "-",
+  });
+
+  const threshold = 0.55;
+  const date = startOfDay(new Date());
+
+  if (normalizedStudentId) {
+    const student = await prisma.student.findUnique({
+      where: { id: normalizedStudentId },
+      select: {
+        id: true,
+        classId: true,
+        fullName: true,
+        studentNumber: true,
+        gender: true,
+        faceEmbedding: true,
+        class: { select: { name: true } },
+      },
+    });
+
+    if (!student) {
+      return res.status(404).json({ error: "Siswa tidak ditemukan" });
+    }
+
+    if (student.classId !== classId) {
+      return res.status(400).json({ error: "Siswa tidak terdaftar di kelas ini" });
+    }
+
+    const embeddings = extractEmbeddings(student.faceEmbedding);
+    if (embeddings.length === 0) {
+      return res.status(404).json({ error: "Wajah siswa belum terdaftar" });
+    }
+
+    let bestDistance = Number.POSITIVE_INFINITY;
+    for (const embedding of embeddings) {
+      if (embedding.length !== inputDescriptor.length) continue;
+      const distance = euclideanDistance(inputDescriptor, embedding);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+      }
+    }
+
+    if (bestDistance > threshold) {
+      return res.status(200).json({ match: null, distance: bestDistance });
+    }
+
+    const existingAttendance = await prisma.attendance.findUnique({
+      where: { studentId_date: { studentId: student.id, date } },
+      select: { id: true },
+    });
+    if (existingAttendance) {
+      return res.status(409).json({ error: "Siswa sudah absen hari ini", match: buildMatch(student) });
+    }
+
+    return res.status(200).json({
+      match: buildMatch(student),
+      distance: bestDistance,
+    });
+  }
+
+  const students = await prisma.student.findMany({
+    where: { classId, faceEmbedding: { not: null } },
+    select: {
+      id: true,
+      fullName: true,
+      studentNumber: true,
+      gender: true,
+      faceEmbedding: true,
+      class: { select: { name: true } },
+    },
+  });
+
+  if (students.length === 0) {
     return res.status(404).json({ error: "Wajah siswa belum terdaftar" });
   }
 
   let bestDistance = Number.POSITIVE_INFINITY;
-  for (const embedding of embeddings) {
-    if (embedding.length !== inputDescriptor.length) continue;
-    const distance = euclideanDistance(inputDescriptor, embedding);
-    if (distance < bestDistance) {
-      bestDistance = distance;
+  let bestStudent:
+    | (typeof students extends Array<infer U> ? U : never)
+    | null = null;
+  for (const student of students) {
+    const embeddings = extractEmbeddings(student.faceEmbedding);
+    if (embeddings.length === 0) continue;
+    for (const embedding of embeddings) {
+      if (embedding.length !== inputDescriptor.length) continue;
+      const distance = euclideanDistance(inputDescriptor, embedding);
+      if (distance < bestDistance) {
+        bestDistance = distance;
+        bestStudent = student;
+      }
     }
   }
 
-  const threshold = 0.55;
+  if (!bestStudent || !Number.isFinite(bestDistance)) {
+    return res.status(404).json({ error: "Wajah siswa belum terdaftar" });
+  }
+
   if (bestDistance > threshold) {
     return res.status(200).json({ match: null, distance: bestDistance });
   }
 
+  const existingAttendance = await prisma.attendance.findUnique({
+    where: { studentId_date: { studentId: bestStudent.id, date } },
+    select: { id: true },
+  });
+  if (existingAttendance) {
+    return res.status(409).json({ error: "Siswa sudah absen hari ini", match: buildMatch(bestStudent) });
+  }
+
   return res.status(200).json({
-    match: {
-      id: student.id,
-      fullName: student.fullName,
-      studentNumber: student.studentNumber,
-      gender: student.gender,
-      className: student.class?.name ?? "-",
-    },
+    match: buildMatch(bestStudent),
     distance: bestDistance,
   });
 }

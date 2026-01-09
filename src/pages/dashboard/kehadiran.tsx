@@ -44,6 +44,14 @@ type AttendanceStudent = {
   checkInTime: string | null;
 };
 
+type RecognizeMatch = {
+  id: string;
+  fullName: string;
+  studentNumber: string | null;
+  gender: "MALE" | "FEMALE";
+  className: string | null;
+};
+
 const statusLabel: Record<string, string> = {
   PRESENT: "Hadir",
   ABSENT: "Alpha",
@@ -61,7 +69,7 @@ const Kehadiran = () => {
   const [isSaving, setIsSaving] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isRecognizing, setIsRecognizing] = useState(false);
-  const [selectedStudent, setSelectedStudent] = useState<AttendanceStudent | null>(null);
+  const [lastMatch, setLastMatch] = useState<RecognizeMatch | null>(null);
   const [isTeacherView, setIsTeacherView] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -87,6 +95,11 @@ const Kehadiran = () => {
     const izin = attendanceData.filter((item) => item.status === "PERMIT").length;
     return { total, hadir, sakit, izin };
   }, [attendanceData]);
+
+  const registeredCount = useMemo(
+    () => attendanceData.filter((student) => student.hasFace).length,
+    [attendanceData],
+  );
 
   const loadClasses = async () => {
     try {
@@ -151,7 +164,7 @@ const Kehadiran = () => {
   }, [selectedClassId]);
 
   useEffect(() => {
-    setSelectedStudent(null);
+    setLastMatch(null);
     if (!isTeacherView) {
       setIsCameraOpen(false);
     }
@@ -163,35 +176,6 @@ const Kehadiran = () => {
     }
   }, [isTeacherView]);
 
-  const studentsWithFace = useMemo(
-    () => attendanceData.filter((student) => student.hasFace),
-    [attendanceData],
-  );
-
-  useEffect(() => {
-    if (!isTeacherView) return;
-    if (selectedStudent && studentsWithFace.some((item) => item.id === selectedStudent.id)) {
-      return;
-    }
-    if (studentsWithFace.length > 0) {
-      setSelectedStudent(studentsWithFace[0]);
-    } else {
-      setSelectedStudent(null);
-    }
-  }, [isTeacherView, selectedStudent, studentsWithFace]);
-
-  useEffect(() => {
-    if (!selectedStudent) return;
-    const updated = attendanceData.find((item) => item.id === selectedStudent.id);
-    if (!updated) return;
-    if (
-      updated.status === selectedStudent.status &&
-      updated.checkInTime === selectedStudent.checkInTime
-    ) {
-      return;
-    }
-    setSelectedStudent(updated);
-  }, [attendanceData, selectedStudent]);
 
   const startCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -289,28 +273,19 @@ const Kehadiran = () => {
       });
       return;
     }
-    if (!selectedStudent) {
-      toast({
-        title: "Siswa belum dipilih",
-        description: "Pilih siswa terlebih dahulu.",
-        variant: "destructive",
-      });
-      return;
-    }
-    const currentStudent =
-      attendanceData.find((item) => item.id === selectedStudent.id) ?? selectedStudent;
     if (!videoRef.current) return;
 
-    if (currentStudent.status) {
+    if (registeredCount === 0) {
       toast({
-        title: "Sudah absen",
-        description: "Siswa ini sudah diabsen hari ini.",
+        title: "Belum ada wajah terdaftar",
+        description: "Enroll wajah siswa terlebih dahulu.",
         variant: "destructive",
       });
       return;
     }
 
     setIsRecognizing(true);
+    setLastMatch(null);
     try {
       const descriptor = await getStableFaceDescriptor(videoRef.current, {
         samples: 6,
@@ -331,7 +306,6 @@ const Kehadiran = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           classId: selectedClassId,
-          studentId: selectedStudent.id,
           descriptor: Array.from(descriptor),
         }),
       });
@@ -339,9 +313,14 @@ const Kehadiran = () => {
       if (!response.ok) {
         const message = data?.error ?? "Gagal mengenali wajah";
         if (response.status === 409) {
+          if (data?.match) {
+            setLastMatch(data.match);
+          }
           toast({
             title: "Sudah absen",
-            description: message,
+            description: data?.match?.fullName
+              ? `${data.match.fullName} sudah absen hari ini.`
+              : message,
             variant: "destructive",
           });
           return;
@@ -358,7 +337,8 @@ const Kehadiran = () => {
         return;
       }
 
-      const saved = await handleStatusChange(selectedStudent.id, "PRESENT");
+      setLastMatch(data.match);
+      const saved = await handleStatusChange(data.match.id, "PRESENT");
       if (!saved) return;
       toast({
         title: "Absensi berhasil",
@@ -419,10 +399,30 @@ const Kehadiran = () => {
               <span>{formattedDate}</span>
             </div>
           </div>
-          <Button variant="outline" className="gap-2" onClick={() => window.open("/dashboard/enroll-wajah", "_self")}>
-            <Camera className="w-4 h-4" />
-            Enroll Wajah
-          </Button>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="outline"
+              className="gap-2"
+              onClick={() => window.open("/dashboard/enroll-wajah", "_self")}
+            >
+              <Camera className="w-4 h-4" />
+              Enroll Wajah
+            </Button>
+            {!isTeacherView && (
+              <Button
+                variant="gradient"
+                className="gap-2"
+                onClick={() => {
+                  setLastMatch(null);
+                  setIsCameraOpen(true);
+                }}
+                disabled={registeredCount === 0}
+              >
+                <Camera className="w-4 h-4" />
+                Scan Wajah
+              </Button>
+            )}
+          </div>
         </div>
 
         {isTeacherView && (
@@ -445,49 +445,30 @@ const Kehadiran = () => {
                   />
                 </div>
                 <div className="space-y-3">
-                  <div>
-                    <p className="text-sm font-medium text-foreground">Pilih siswa</p>
-                    <Select
-                      value={selectedStudent?.id ?? ""}
-                      onValueChange={(value) => {
-                        const student = attendanceData.find((item) => item.id === value) ?? null;
-                        setSelectedStudent(student);
-                      }}
-                    >
-                      <SelectTrigger className="mt-2">
-                        <SelectValue placeholder="Pilih siswa" />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {studentsWithFace.length === 0 ? (
-                          <SelectItem value="empty" disabled>
-                            Belum ada wajah terdaftar
-                          </SelectItem>
-                        ) : (
-                          studentsWithFace.map((student) => (
-                            <SelectItem key={student.id} value={student.id}>
-                              {student.fullName}
-                            </SelectItem>
-                          ))
-                        )}
-                      </SelectContent>
-                    </Select>
+                  <div className="rounded-lg border border-border p-3">
+                    <p className="text-sm font-medium text-foreground">Hasil Deteksi</p>
+                    {lastMatch ? (
+                      <div className="mt-2 space-y-1 text-sm text-muted-foreground">
+                        <p className="font-semibold text-foreground">{lastMatch.fullName}</p>
+                        <p>NIS: {lastMatch.studentNumber ?? "-"}</p>
+                        <p>Kelas: {lastMatch.className ?? "-"}</p>
+                      </div>
+                    ) : (
+                      <p className="mt-2 text-sm text-muted-foreground">Belum ada wajah terdeteksi.</p>
+                    )}
                   </div>
                   <div className="text-sm text-muted-foreground">
-                    {selectedStudent
-                      ? `Status: ${
-                          selectedStudent.status
-                            ? "Sudah absen hari ini"
-                            : isRecognizing
-                              ? "Mendeteksi..."
-                              : "Siap"
-                        }`
-                      : "Pilih siswa untuk memulai absensi."}
+                    {registeredCount === 0
+                      ? "Belum ada wajah terdaftar."
+                      : isRecognizing
+                        ? "Mendeteksi..."
+                        : "Siap mendeteksi."}
                   </div>
                   <Button
                     variant="gradient"
                     className="w-full"
                     onClick={handleRecognize}
-                    disabled={isRecognizing || !selectedStudent || !!selectedStudent?.status}
+                    disabled={isRecognizing || registeredCount === 0}
                   >
                     {isRecognizing ? "Mendeteksi..." : "Scan Wajah"}
                   </Button>
@@ -626,21 +607,6 @@ const Kehadiran = () => {
                             <p className="text-xs text-muted-foreground">
                               Jam masuk: {siswa.checkInTime ?? "-"}
                             </p>
-                            {!isTeacherView && (
-                              <Button
-                                variant="gradient"
-                                size="sm"
-                                className="w-full"
-                                disabled={!siswa.hasFace || !!siswa.status}
-                                onClick={() => {
-                                  setSelectedStudent(siswa);
-                                  setIsCameraOpen(true);
-                                }}
-                              >
-                                <Camera className="w-4 h-4" />
-                                Verifikasi Wajah
-                              </Button>
-                            )}
                           </div>
                         </div>
                       </div>
@@ -665,7 +631,7 @@ const Kehadiran = () => {
           onOpenChange={(open) => {
             setIsCameraOpen(open);
             if (!open) {
-              setSelectedStudent(null);
+              setLastMatch(null);
             }
           }}
         >
@@ -686,37 +652,21 @@ const Kehadiran = () => {
               </div>
               <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-center text-sm text-muted-foreground">
                 <div>
-                  <p className="text-xs text-muted-foreground">Pilih siswa</p>
-                  <Select
-                    value={selectedStudent?.id ?? ""}
-                    onValueChange={(value) => {
-                      const student = attendanceData.find((item) => item.id === value) ?? null;
-                      setSelectedStudent(student);
-                    }}
-                  >
-                    <SelectTrigger className="mt-2">
-                      <SelectValue placeholder="Pilih siswa" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {studentsWithFace.length === 0 ? (
-                        <SelectItem value="empty" disabled>
-                          Belum ada wajah terdaftar
-                        </SelectItem>
-                      ) : (
-                        studentsWithFace.map((student) => (
-                          <SelectItem key={student.id} value={student.id}>
-                            {student.fullName}
-                          </SelectItem>
-                        ))
-                      )}
-                    </SelectContent>
-                  </Select>
+                  <p className="text-xs text-muted-foreground">Hasil deteksi</p>
+                  <p className="mt-1 text-sm font-semibold text-foreground">
+                    {lastMatch?.fullName ?? "Belum ada wajah terdeteksi"}
+                  </p>
+                  <p className="text-xs text-muted-foreground">
+                    {lastMatch
+                      ? `NIS: ${lastMatch.studentNumber ?? "-"} - Kelas: ${lastMatch.className ?? "-"}`
+                      : "Pastikan wajah terlihat jelas di kamera."}
+                  </p>
                 </div>
                 <div className="text-right">
                   <span>
                     Status:{" "}
-                    {selectedStudent?.status
-                      ? "Sudah absen hari ini"
+                    {registeredCount === 0
+                      ? "Belum ada wajah terdaftar"
                       : isRecognizing
                         ? "Mengambil beberapa frame..."
                         : "Siap"}
@@ -724,9 +674,7 @@ const Kehadiran = () => {
                 </div>
               </div>
               <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>
-                  {selectedStudent?.fullName ?? "-"} • {selectedClass?.name ?? "-"}
-                </span>
+                <span>Kelas aktif: {selectedClass?.name ?? "-"}</span>
               </div>
             </div>
             <DialogFooter>
@@ -736,7 +684,7 @@ const Kehadiran = () => {
               <Button
                 variant="gradient"
                 onClick={handleRecognize}
-                disabled={isRecognizing || !selectedStudent || !!selectedStudent?.status}
+                disabled={isRecognizing || registeredCount === 0}
               >
                 {isRecognizing ? "Mendeteksi..." : "Scan Wajah"}
               </Button>
