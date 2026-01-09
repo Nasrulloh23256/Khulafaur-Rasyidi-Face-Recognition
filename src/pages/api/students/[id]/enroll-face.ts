@@ -25,12 +25,23 @@ const saveBase64Image = async (dataUrl: string) => {
   if (buffer.length > MAX_IMAGE_BYTES) {
     throw new Error("IMAGE_TOO_LARGE");
   }
+  if (process.env.VERCEL) {
+    return dataUrl;
+  }
 
   const uploadDir = path.join(process.cwd(), "public", "uploads");
-  await fs.mkdir(uploadDir, { recursive: true });
-  const filename = `${Date.now()}-${randomUUID()}.${ext}`;
-  await fs.writeFile(path.join(uploadDir, filename), buffer);
-  return `/uploads/${filename}`;
+  try {
+    await fs.mkdir(uploadDir, { recursive: true });
+    const filename = `${Date.now()}-${randomUUID()}.${ext}`;
+    await fs.writeFile(path.join(uploadDir, filename), buffer);
+    return `/uploads/${filename}`;
+  } catch (error) {
+    const maybeError = error as NodeJS.ErrnoException;
+    if (maybeError?.code === "EROFS" || maybeError?.code === "EACCES") {
+      return dataUrl;
+    }
+    throw error;
+  }
 };
 
 const normalizeSamples = (input: unknown) => {
