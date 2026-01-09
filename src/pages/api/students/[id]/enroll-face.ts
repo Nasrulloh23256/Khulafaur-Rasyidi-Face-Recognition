@@ -93,18 +93,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   let faceImageUrl: string | null = null;
-  if (faceImage !== undefined && faceImage !== null) {
-    if (typeof faceImage !== "string" || faceImage.trim() === "") {
-      return res.status(400).json({ error: "Format foto wajah tidak valid" });
-    }
+  if (typeof faceImage === "string" && faceImage.trim() !== "") {
     try {
-      faceImageUrl = await saveBase64Image(faceImage);
+      faceImageUrl = await saveBase64Image(faceImage.trim());
     } catch (error) {
       const message = error instanceof Error ? error.message : "INVALID_IMAGE";
       if (message === "IMAGE_TOO_LARGE") {
         return res.status(413).json({ error: "Ukuran foto maksimal 2MB" });
       }
-      return res.status(400).json({ error: "Format foto wajah tidak valid" });
+      faceImageUrl = null;
     }
   }
 
