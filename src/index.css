@@ -1,0 +1,170 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+@import url('https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@400;500;600;700;800&display=swap');
+
+@layer base {
+  :root {
+    --background: 195 30% 98%;
+    --foreground: 200 50% 10%;
+
+    --card: 0 0% 100%;
+    --card-foreground: 200 50% 10%;
+
+    --popover: 0 0% 100%;
+    --popover-foreground: 200 50% 10%;
+
+    --primary: 187 85% 43%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 169 76% 45%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 195 25% 94%;
+    --muted-foreground: 200 20% 45%;
+
+    --accent: 45 95% 62%;
+    --accent-foreground: 200 50% 10%;
+
+    --destructive: 0 84% 60%;
+    --destructive-foreground: 0 0% 100%;
+
+    --success: 142 70% 45%;
+    --success-foreground: 0 0% 100%;
+
+    --warning: 38 92% 50%;
+    --warning-foreground: 0 0% 100%;
+
+    --info: 199 89% 48%;
+    --info-foreground: 0 0% 100%;
+
+    --border: 195 25% 88%;
+    --input: 195 25% 88%;
+    --ring: 187 85% 43%;
+
+    --radius: 0.75rem;
+
+    --sidebar-background: 187 85% 25%;
+    --sidebar-foreground: 0 0% 100%;
+    --sidebar-primary: 45 95% 62%;
+    --sidebar-primary-foreground: 200 50% 10%;
+    --sidebar-accent: 187 70% 35%;
+    --sidebar-accent-foreground: 0 0% 100%;
+    --sidebar-border: 187 60% 30%;
+    --sidebar-ring: 45 95% 62%;
+
+    /* Custom gradients */
+    --gradient-primary: linear-gradient(135deg, hsl(187 85% 43%) 0%, hsl(169 76% 45%) 100%);
+    --gradient-hero: linear-gradient(135deg, hsl(187 85% 48%) 0%, hsl(169 76% 50%) 50%, hsl(169 80% 55%) 100%);
+    --gradient-sidebar: linear-gradient(180deg, hsl(187 85% 30%) 0%, hsl(187 75% 22%) 100%);
+    --gradient-card: linear-gradient(145deg, hsl(0 0% 100%) 0%, hsl(195 30% 98%) 100%);
+  }
+
+  .dark {
+    --background: 200 50% 8%;
+    --foreground: 195 25% 95%;
+
+    --card: 200 45% 12%;
+    --card-foreground: 195 25% 95%;
+
+    --popover: 200 45% 12%;
+    --popover-foreground: 195 25% 95%;
+
+    --primary: 187 85% 50%;
+    --primary-foreground: 0 0% 100%;
+
+    --secondary: 169 76% 50%;
+    --secondary-foreground: 0 0% 100%;
+
+    --muted: 200 40% 18%;
+    --muted-foreground: 195 20% 65%;
+
+    --accent: 45 95% 62%;
+    --accent-foreground: 200 50% 10%;
+
+    --destructive: 0 62% 30%;
+    --destructive-foreground: 0 0% 100%;
+
+    --border: 200 40% 20%;
+    --input: 200 40% 20%;
+    --ring: 187 85% 50%;
+
+    --sidebar-background: 200 50% 6%;
+    --sidebar-foreground: 195 25% 95%;
+    --sidebar-primary: 45 95% 62%;
+    --sidebar-primary-foreground: 200 50% 10%;
+    --sidebar-accent: 200 45% 15%;
+    --sidebar-accent-foreground: 195 25% 95%;
+    --sidebar-border: 200 40% 18%;
+    --sidebar-ring: 45 95% 62%;
+  }
+}
+
+@layer base {
+  * {
+    @apply border-border;
+  }
+
+  body {
+    @apply bg-background text-foreground font-sans antialiased;
+    font-family: 'Plus Jakarta Sans', sans-serif;
+  }
+}
+
+@layer utilities {
+  .gradient-primary {
+    background: var(--gradient-primary);
+  }
+  
+  .gradient-hero {
+    background: var(--gradient-hero);
+  }
+  
+  .gradient-sidebar {
+    background: var(--gradient-sidebar);
+  }
+  
+  .gradient-card {
+    background: var(--gradient-card);
+  }
+
+  .text-gradient {
+    background: var(--gradient-primary);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+  }
+
+  .glass-effect {
+    backdrop-filter: blur(12px);
+    background: hsla(0, 0%, 100%, 0.85);
+    border: 1px solid hsla(195, 25%, 88%, 0.5);
+  }
+
+  .shadow-soft {
+    box-shadow: 0 4px 24px -4px hsla(187, 85%, 43%, 0.15);
+  }
+
+  .shadow-card {
+    box-shadow: 0 2px 12px -2px hsla(200, 50%, 10%, 0.08);
+  }
+
+  .animate-float {
+    animation: float 6s ease-in-out infinite;
+  }
+
+  @keyframes float {
+    0%, 100% { transform: translateY(0px); }
+    50% { transform: translateY(-10px); }
+  }
+
+  .animate-pulse-soft {
+    animation: pulse-soft 3s ease-in-out infinite;
+  }
+
+  @keyframes pulse-soft {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.7; }
+  }
+}
