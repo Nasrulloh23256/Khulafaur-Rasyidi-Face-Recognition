@@ -2,4 +2,26 @@
   display: inline-block;
   position: relative;
   will-change: background-position;
+  line-height: 1.2;
+  padding-bottom: 0.08em;
+  overflow: visible;
+}
+
+.baseText {
+  position: relative;
+  z-index: 1;
+}
+
+.shineLayer {
+  display: block;
+  position: absolute;
+  inset: 0;
+  z-index: 2;
+  pointer-events: none;
+  user-select: none;
+  white-space: inherit;
+  will-change: background-position;
+  mix-blend-mode: screen;
+  opacity: 0.95;
+  filter: drop-shadow(0 0 6px var(--shine-color, rgba(255, 255, 255, 0.7)));
 }

@@ -253,7 +253,14 @@ const Index = () => {
                   variants={fadeUp}
                 >
                   <Sparkles className="w-4 h-4" />
-                  Absensi digital berbasis face recognition
+                  <ShinyText
+                    text="Absensi digital berbasis face recognition"
+                    className="text-sm font-medium"
+                    color="currentColor"
+                    shineColor="#e2e8f0"
+                    keepTextColor
+                    speed={2.4}
+                  />
                 </motion.div>
                 <motion.h1
                   className="text-4xl md:text-6xl font-extrabold text-foreground leading-tight"

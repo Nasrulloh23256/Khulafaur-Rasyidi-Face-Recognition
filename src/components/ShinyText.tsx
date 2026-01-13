@@ -8,8 +8,10 @@ interface ShinyTextProps {
   speed?: number;
   className?: string;
   color?: string;
+  secondaryColor?: string;
   shineColor?: string;
   spread?: number;
+  keepTextColor?: boolean;
   yoyo?: boolean;
   pauseOnHover?: boolean;
   direction?: "left" | "right";
@@ -21,9 +23,11 @@ const ShinyText = ({
   disabled = false,
   speed = 2,
   className = "",
-  color = "#0be6c2ff",
-  shineColor = "#ddf40eff",
+  color = "hsl(var(--primary))",
+  secondaryColor = "hsl(var(--secondary))",
+  shineColor = "hsl(var(--accent))",
   spread = 120,
+  keepTextColor = false,
   yoyo = false,
   pauseOnHover = false,
   direction = "left",
@@ -100,21 +104,41 @@ const ShinyText = ({
   }, [pauseOnHover]);
 
   const gradientStyle: React.CSSProperties = {
-    backgroundImage: `linear-gradient(${spread}deg, ${color} 0%, ${color} 35%, ${shineColor} 50%, ${color} 65%, ${color} 100%)`,
+    backgroundImage: keepTextColor
+      ? `linear-gradient(${spread}deg, transparent 0%, transparent 35%, ${shineColor} 50%, transparent 65%, transparent 100%)`
+      : `linear-gradient(${spread}deg, ${color} 0%, ${secondaryColor} 35%, ${shineColor} 50%, ${secondaryColor} 65%, ${color} 100%)`,
     backgroundSize: "200% auto",
     WebkitBackgroundClip: "text",
     backgroundClip: "text",
     WebkitTextFillColor: "transparent",
   };
 
+  const rootStyle: React.CSSProperties = {
+    ...(keepTextColor ? { color } : gradientStyle),
+    ["--shine-color" as string]: shineColor,
+  };
+
   return (
     <motion.span
       className={`${styles.shinyText} ${className}`}
-      style={{ ...gradientStyle, backgroundPosition }}
+      style={keepTextColor ? rootStyle : { ...rootStyle, backgroundPosition }}
       onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
-      {text}
+      {keepTextColor ? (
+        <>
+          <span className={styles.baseText}>{text}</span>
+          <motion.span
+            aria-hidden="true"
+            className={styles.shineLayer}
+            style={{ ...gradientStyle, backgroundPosition }}
+          >
+            {text}
+          </motion.span>
+        </>
+      ) : (
+        text
+      )}
     </motion.span>
   );
 };
