@@ -263,8 +263,6 @@ const Index = () => {
                   <ShinyText
                     text="Digital"
                     className="inline-block"
-                    color="#00c468"
-                    shineColor="#d6ffe8"
                     speed={2.6}
                   />{" "}
                   yang rapi dan cepat untuk TK Khulafaur Arrasyidin
@@ -365,8 +363,6 @@ const Index = () => {
                 <ShinyText
                   text="Unggulan"
                   className="inline-block"
-                  color="#00c468"
-                  shineColor="#d6ffe8"
                   speed={3}
                   delay={0.4}
                 />
@@ -412,8 +408,6 @@ const Index = () => {
                 <ShinyText
                   text="jelas"
                   className="inline-block"
-                  color="#00c468"
-                  shineColor="#d6ffe8"
                   speed={3.2}
                   delay={0.6}
                 />{" "}
@@ -503,8 +497,6 @@ const Index = () => {
                 <ShinyText
                   text="guru"
                   className="inline-block"
-                  color="#00c468"
-                  shineColor="#d6ffe8"
                   speed={3}
                   delay={0.3}
                 />{" "}
@@ -640,7 +632,11 @@ const Index = () => {
         <section className="py-20">
           <div className="container mx-auto px-4">
             <motion.div
-              className="gradient-primary rounded-3xl p-12 text-center relative overflow-hidden"
+              className="rounded-3xl p-12 text-center relative overflow-hidden shadow-soft"
+              style={{
+                background:
+                  "linear-gradient(135deg, #0ac4da 0%, #19d0b9 50%, #18d3a6 100%)",
+              }}
               variants={fadeUp}
               initial="hidden"
               whileInView="visible"
