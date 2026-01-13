@@ -6,6 +6,7 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { motion, type Variants } from "framer-motion";
+import ShinyText from "@/components/ShinyText";
 import {
   ArrowRight,
   BarChart3,
@@ -257,7 +258,15 @@ const Index = () => {
                   className="text-4xl md:text-6xl font-extrabold text-foreground leading-tight"
                   variants={fadeUp}
                 >
-                  Absensi <span className="text-shiny">Digital</span> yang rapi dan cepat untuk TK Khulafaur Arrasyidin
+                  Absensi{" "}
+                  <ShinyText
+                    text="Digital"
+                    className="inline-block"
+                    color="#b5b5b5"
+                    shineColor="#ffffff"
+                    speed={2.6}
+                  />{" "}
+                  yang rapi dan cepat untuk TK Khulafaur Arrasyidin
                 </motion.h1>
                 <motion.p className="mt-6 text-lg text-muted-foreground max-w-2xl" variants={fadeUp}>
                   Sistem absensi modern yang fokus pada kecepatan, akurasi, dan kemudahan. Guru tinggal arahkan kamera,
@@ -353,7 +362,15 @@ const Index = () => {
               viewport={{ once: true, amount: 0.3 }}
             >
               <motion.h2 className="text-3xl md:text-4xl font-bold text-foreground" variants={fadeUp}>
-                Fitur <span className="text-shiny">Unggulan</span>
+                Fitur{" "}
+                <ShinyText
+                  text="Unggulan"
+                  className="inline-block"
+                  color="#b5b5b5"
+                  shineColor="#ffffff"
+                  speed={3}
+                  delay={0.4}
+                />
               </motion.h2>
               <motion.p className="mt-4 text-muted-foreground" variants={fadeUp}>
                 Semua fitur dirancang untuk mempercepat absensi tanpa kehilangan detail penting.
@@ -394,7 +411,16 @@ const Index = () => {
                 viewport={{ once: true, amount: 0.3 }}
               >
                 <motion.h2 className="text-3xl md:text-4xl font-bold text-foreground" variants={fadeUp}>
-                  Alur kerja yang <span className="text-shiny">jelas</span> untuk guru
+                  Alur kerja yang{" "}
+                  <ShinyText
+                    text="jelas"
+                    className="inline-block"
+                    color="#b5b5b5"
+                    shineColor="#ffffff"
+                    speed={3.2}
+                    delay={0.6}
+                  />{" "}
+                  untuk guru
                 </motion.h2>
                 <motion.p className="mt-4 text-muted-foreground" variants={fadeUp}>
                   Dari daftar guru sampai laporan hadir, semua langkah dibuat sederhana agar staf sekolah tidak perlu
@@ -473,7 +499,16 @@ const Index = () => {
                 viewport={{ once: true, amount: 0.3 }}
               >
                 <motion.h2 className="text-3xl md:text-4xl font-bold text-foreground" variants={fadeUp}>
-                  Daftar akun <span className="text-shiny">guru</span> dalam hitungan menit
+                  Daftar akun{" "}
+                  <ShinyText
+                    text="guru"
+                    className="inline-block"
+                    color="#b5b5b5"
+                    shineColor="#ffffff"
+                    speed={3}
+                    delay={0.3}
+                  />{" "}
+                  dalam hitungan menit
                 </motion.h2>
                 <motion.p className="mt-4 text-muted-foreground" variants={fadeUp}>
                   Setelah akun aktif, guru bisa langsung mengelola kelas, siswa, serta absensi otomatis dari dashboard.

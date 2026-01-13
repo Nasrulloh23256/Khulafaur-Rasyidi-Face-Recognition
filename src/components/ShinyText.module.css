@@ -1,0 +1,5 @@
+.shinyText {
+  display: inline-block;
+  position: relative;
+  will-change: background-position;
+}
