@@ -1,0 +1,67 @@
+.card {
+  --glow-color: 45, 212, 191;
+  --glow-intensity: 0;
+  --glow-radius: 220px;
+  --glow-x: 50%;
+  --glow-y: 50%;
+  --tilt-x: 0deg;
+  --tilt-y: 0deg;
+  --magnet-x: 0px;
+  --magnet-y: 0px;
+  --lift: 0px;
+  position: relative;
+  overflow: hidden;
+  transform-style: preserve-3d;
+  transform: translate3d(var(--magnet-x), var(--magnet-y), 0)
+    rotateX(var(--tilt-x))
+    rotateY(var(--tilt-y))
+    translateY(var(--lift));
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
+  will-change: transform;
+}
+
+.card::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  background: radial-gradient(
+    circle var(--glow-radius) at var(--glow-x) var(--glow-y),
+    rgba(var(--glow-color), 0.35) 0%,
+    rgba(var(--glow-color), 0.12) 45%,
+    transparent 70%
+  );
+  opacity: var(--glow-intensity);
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.card::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-radius: inherit;
+  border: 1px solid rgba(var(--glow-color), 0.2);
+  box-shadow: 0 0 24px rgba(var(--glow-color), 0.18);
+  opacity: var(--glow-intensity);
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
+
+.card:hover {
+  --glow-intensity: 1;
+  --lift: -4px;
+  box-shadow: 0 24px 60px -40px rgba(15, 23, 42, 0.45);
+}
+
+.inner {
+  position: relative;
+  z-index: 1;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .card {
+    transition: none;
+    transform: none;
+  }
+}

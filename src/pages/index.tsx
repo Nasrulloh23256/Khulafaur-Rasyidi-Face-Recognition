@@ -7,6 +7,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { useToast } from "@/hooks/use-toast";
 import { motion, type Variants } from "framer-motion";
 import ShinyText from "@/components/ShinyText";
+import MagicBentoCard from "@/components/MagicBentoCard";
 import {
   ArrowRight,
   BarChart3,
@@ -295,7 +296,7 @@ const Index = () => {
                     <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">Aktif</span>
                   </div>
                   <div className="mt-6 grid gap-4">
-                    <div className="rounded-2xl bg-muted/60 p-4">
+                    <MagicBentoCard className="rounded-2xl bg-muted/60 p-4">
                       <div className="flex items-center gap-3">
                         <div className="h-12 w-12 rounded-2xl gradient-primary flex items-center justify-center">
                           <Camera className="h-6 w-6 text-primary-foreground" />
@@ -305,8 +306,8 @@ const Index = () => {
                           <p className="text-xs text-muted-foreground">Kelas TK A1 - 24 siswa terdaftar</p>
                         </div>
                       </div>
-                    </div>
-                    <div className="rounded-2xl border border-border/60 bg-card p-4">
+                    </MagicBentoCard>
+                    <MagicBentoCard className="rounded-2xl border border-border/60 bg-card p-4">
                       <div className="flex items-center justify-between">
                         <div>
                           <p className="text-sm text-muted-foreground">Hadir hari ini</p>
@@ -320,13 +321,13 @@ const Index = () => {
                       <div className="mt-3 h-2 rounded-full bg-muted">
                         <div className="h-full w-[92%] rounded-full gradient-primary" />
                       </div>
-                    </div>
-                    <div className="rounded-2xl bg-primary/10 p-4">
+                    </MagicBentoCard>
+                    <MagicBentoCard className="rounded-2xl bg-primary/10 p-4">
                       <p className="text-xs uppercase tracking-widest text-primary">Notifikasi</p>
                       <p className="mt-2 text-sm font-semibold text-foreground">
                         Absensi otomatis tersinkron ke laporan harian.
                       </p>
-                    </div>
+                    </MagicBentoCard>
                   </div>
                 </div>
               </motion.div>
@@ -339,13 +340,11 @@ const Index = () => {
               animate="visible"
             >
               {stats.map((stat) => (
-                <motion.div
-                  key={stat.label}
-                  className="rounded-2xl bg-card/80 border border-border/60 p-5 shadow-card"
-                  variants={fadeUp}
-                >
-                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                  <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+                <motion.div key={stat.label} variants={fadeUp}>
+                  <MagicBentoCard className="h-full rounded-2xl bg-card/80 border border-border/60 p-5 shadow-card">
+                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                    <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+                  </MagicBentoCard>
                 </motion.div>
               ))}
             </motion.div>
@@ -385,16 +384,14 @@ const Index = () => {
               viewport={{ once: true, amount: 0.2 }}
             >
               {features.map((feature) => (
-                <motion.div
-                  key={feature.title}
-                  className="group rounded-3xl bg-card border border-border/60 p-6 shadow-card hover:shadow-soft transition-all"
-                  variants={fadeUp}
-                >
-                  <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mb-4">
-                    <feature.icon className="w-7 h-7 text-primary-foreground" />
-                  </div>
-                  <h3 className="text-lg font-bold text-foreground">{feature.title}</h3>
-                  <p className="text-sm text-muted-foreground mt-2">{feature.description}</p>
+                <motion.div key={feature.title} variants={fadeUp}>
+                  <MagicBentoCard className="group h-full rounded-3xl bg-card border border-border/60 p-6 shadow-card hover:shadow-soft transition-all">
+                    <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mb-4">
+                      <feature.icon className="w-7 h-7 text-primary-foreground" />
+                    </div>
+                    <h3 className="text-lg font-bold text-foreground">{feature.title}</h3>
+                    <p className="text-sm text-muted-foreground mt-2">{feature.description}</p>
+                  </MagicBentoCard>
                 </motion.div>
               ))}
             </motion.div>
@@ -428,62 +425,65 @@ const Index = () => {
                 </motion.p>
                 <motion.div className="mt-10 grid sm:grid-cols-2 gap-6" variants={slowStagger}>
                   {steps.map((step, index) => (
-                    <motion.div key={step.title} className="rounded-2xl border border-border/60 p-5 bg-card" variants={fadeUp}>
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                          <step.icon className="w-5 h-5 text-primary" />
+                    <motion.div key={step.title} variants={fadeUp}>
+                      <MagicBentoCard className="h-full rounded-2xl border border-border/60 p-5 bg-card">
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                            <step.icon className="w-5 h-5 text-primary" />
+                          </div>
+                          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                            Langkah {index + 1}
+                          </span>
                         </div>
-                        <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                          Langkah {index + 1}
-                        </span>
-                      </div>
-                      <h3 className="mt-4 text-base font-semibold text-foreground">{step.title}</h3>
-                      <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
+                        <h3 className="mt-4 text-base font-semibold text-foreground">{step.title}</h3>
+                        <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
+                      </MagicBentoCard>
                     </motion.div>
                   ))}
                 </motion.div>
               </motion.div>
 
               <motion.div
-                className="rounded-3xl border border-border/60 bg-gradient-to-br from-white via-white to-muted/60 p-8 shadow-soft"
                 variants={fadeIn}
                 initial="hidden"
                 whileInView="visible"
                 viewport={{ once: true, amount: 0.3 }}
               >
-                <div className="flex items-center gap-3">
-                  <div className="w-12 h-12 rounded-2xl gradient-primary flex items-center justify-center">
-                    <Shield className="w-6 h-6 text-primary-foreground" />
-                  </div>
-                  <div>
-                    <h3 className="text-lg font-bold text-foreground">Kepercayaan Sekolah</h3>
-                    <p className="text-sm text-muted-foreground">Data hadir otomatis, laporan selalu siap.</p>
-                  </div>
-                </div>
-                <div className="mt-6 space-y-4">
-                  {trustItems.map((item) => (
-                    <div key={item.title} className="flex items-start gap-3">
-                      <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
-                        <item.icon className="w-4 h-4 text-primary" />
-                      </div>
-                      <div>
-                        <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                        <p className="text-sm text-muted-foreground">{item.description}</p>
-                      </div>
+                <MagicBentoCard className="rounded-3xl border border-border/60 bg-gradient-to-br from-white via-white to-muted/60 p-8 shadow-soft">
+                  <div className="flex items-center gap-3">
+                    <div className="w-12 h-12 rounded-2xl gradient-primary flex items-center justify-center">
+                      <Shield className="w-6 h-6 text-primary-foreground" />
                     </div>
-                  ))}
-                </div>
-                <div className="mt-8 rounded-2xl bg-primary/10 p-4">
-                  <p className="text-sm font-semibold text-foreground">Monitoring Harian</p>
-                  <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Siswa terdaftar</span>
-                    <span className="font-semibold text-foreground">240</span>
+                    <div>
+                      <h3 className="text-lg font-bold text-foreground">Kepercayaan Sekolah</h3>
+                      <p className="text-sm text-muted-foreground">Data hadir otomatis, laporan selalu siap.</p>
+                    </div>
                   </div>
-                  <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
-                    <span>Hadir hari ini</span>
-                    <span className="font-semibold text-foreground">219</span>
+                  <div className="mt-6 space-y-4">
+                    {trustItems.map((item) => (
+                      <div key={item.title} className="flex items-start gap-3">
+                        <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
+                          <item.icon className="w-4 h-4 text-primary" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                          <p className="text-sm text-muted-foreground">{item.description}</p>
+                        </div>
+                      </div>
+                    ))}
                   </div>
-                </div>
+                  <div className="mt-8 rounded-2xl bg-primary/10 p-4">
+                    <p className="text-sm font-semibold text-foreground">Monitoring Harian</p>
+                    <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
+                      <span>Siswa terdaftar</span>
+                      <span className="font-semibold text-foreground">240</span>
+                    </div>
+                    <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
+                      <span>Hadir hari ini</span>
+                      <span className="font-semibold text-foreground">219</span>
+                    </div>
+                  </div>
+                </MagicBentoCard>
               </motion.div>
             </div>
           </div>
