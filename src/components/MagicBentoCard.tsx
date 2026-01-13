@@ -1,4 +1,4 @@
-import { useEffect, useRef } from "react";
+import { useRef } from "react";
 import type { CSSProperties, MouseEvent, ReactNode } from "react";
 import styles from "./MagicBentoCard.module.css";
 
@@ -20,17 +20,9 @@ const MagicBentoCard = ({
   enableMagnetism = true,
 }: MagicBentoCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
-  const canHoverRef = useRef(false);
-
-  useEffect(() => {
-    if (typeof window === "undefined") return;
-    const hoverMedia = window.matchMedia("(hover: hover) and (pointer: fine)");
-    const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)");
-    canHoverRef.current = hoverMedia.matches && !reduceMotion.matches;
-  }, []);
 
   const handleMouseMove = (event: MouseEvent<HTMLDivElement>) => {
-    if (!canHoverRef.current || !cardRef.current) return;
+    if (!cardRef.current) return;
 
     const rect = cardRef.current.getBoundingClientRect();
     const x = event.clientX - rect.left;
@@ -48,6 +40,12 @@ const MagicBentoCard = ({
     cardRef.current.style.setProperty("--tilt-y", `${tiltY}deg`);
     cardRef.current.style.setProperty("--magnet-x", `${magnetX}px`);
     cardRef.current.style.setProperty("--magnet-y", `${magnetY}px`);
+    cardRef.current.style.setProperty("--glow-intensity", "1");
+    cardRef.current.style.setProperty("--lift", "-4px");
+  };
+
+  const handleMouseEnter = () => {
+    if (!cardRef.current) return;
     cardRef.current.style.setProperty("--glow-intensity", "1");
     cardRef.current.style.setProperty("--lift", "-4px");
   };
@@ -73,6 +71,7 @@ const MagicBentoCard = ({
         } as CSSProperties
       }
       onMouseMove={handleMouseMove}
+      onMouseEnter={handleMouseEnter}
       onMouseLeave={handleMouseLeave}
     >
       <div className={styles.inner}>{children}</div>

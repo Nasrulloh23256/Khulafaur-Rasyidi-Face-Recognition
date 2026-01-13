@@ -21,8 +21,8 @@ const ShinyText = ({
   disabled = false,
   speed = 2,
   className = "",
-  color = "#b5b5b5",
-  shineColor = "#ffffff",
+  color = "#00c468",
+  shineColor = "#d6ffe8",
   spread = 120,
   yoyo = false,
   pauseOnHover = false,
@@ -105,6 +105,7 @@ const ShinyText = ({
     WebkitBackgroundClip: "text",
     backgroundClip: "text",
     WebkitTextFillColor: "transparent",
+    color,
   };
 
   return (

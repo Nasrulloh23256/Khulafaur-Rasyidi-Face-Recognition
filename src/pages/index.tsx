@@ -263,8 +263,8 @@ const Index = () => {
                   <ShinyText
                     text="Digital"
                     className="inline-block"
-                    color="#b5b5b5"
-                    shineColor="#ffffff"
+                    color="#00c468"
+                    shineColor="#d6ffe8"
                     speed={2.6}
                   />{" "}
                   yang rapi dan cepat untuk TK Khulafaur Arrasyidin
@@ -365,8 +365,8 @@ const Index = () => {
                 <ShinyText
                   text="Unggulan"
                   className="inline-block"
-                  color="#b5b5b5"
-                  shineColor="#ffffff"
+                  color="#00c468"
+                  shineColor="#d6ffe8"
                   speed={3}
                   delay={0.4}
                 />
@@ -409,14 +409,14 @@ const Index = () => {
               >
                 <motion.h2 className="text-3xl md:text-4xl font-bold text-foreground" variants={fadeUp}>
                   Alur kerja yang{" "}
-                  <ShinyText
-                    text="jelas"
-                    className="inline-block"
-                    color="#b5b5b5"
-                    shineColor="#ffffff"
-                    speed={3.2}
-                    delay={0.6}
-                  />{" "}
+                <ShinyText
+                  text="jelas"
+                  className="inline-block"
+                  color="#00c468"
+                  shineColor="#d6ffe8"
+                  speed={3.2}
+                  delay={0.6}
+                />{" "}
                   untuk guru
                 </motion.h2>
                 <motion.p className="mt-4 text-muted-foreground" variants={fadeUp}>
@@ -500,14 +500,14 @@ const Index = () => {
               >
                 <motion.h2 className="text-3xl md:text-4xl font-bold text-foreground" variants={fadeUp}>
                   Daftar akun{" "}
-                  <ShinyText
-                    text="guru"
-                    className="inline-block"
-                    color="#b5b5b5"
-                    shineColor="#ffffff"
-                    speed={3}
-                    delay={0.3}
-                  />{" "}
+                <ShinyText
+                  text="guru"
+                  className="inline-block"
+                  color="#00c468"
+                  shineColor="#d6ffe8"
+                  speed={3}
+                  delay={0.3}
+                />{" "}
                   dalam hitungan menit
                 </motion.h2>
                 <motion.p className="mt-4 text-muted-foreground" variants={fadeUp}>
