@@ -6,60 +6,114 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import { motion, type Variants } from "framer-motion";
-import { 
-  Users, 
-  BookOpen, 
-  ClipboardCheck, 
-  Shield, 
-  Camera, 
-  BarChart3,
+import {
   ArrowRight,
+  BarChart3,
+  Camera,
   CheckCircle2,
-  Sparkles,
-  Mail,
+  ClipboardCheck,
+  Clock,
   Lock,
-  Phone
+  Mail,
+  Phone,
+  Shield,
+  Sparkles,
+  UserPlus,
+  Users,
+  Zap,
 } from "lucide-react";
+
 const features = [
   {
     icon: Camera,
-    title: "Face Recognition",
-    description: "Sistem absensi otomatis dengan teknologi pengenalan wajah yang akurat dan cepat"
+    title: "Face Recognition Presisi",
+    description: "Deteksi wajah cepat dengan kualitas gambar yang stabil untuk absensi akurat setiap hari.",
   },
   {
     icon: Users,
-    title: "Manajemen Siswa",
-    description: "Kelola data siswa, kelas, dan wali kelas dengan mudah dalam satu platform"
+    title: "Manajemen Kelas dan Siswa",
+    description: "Kelola data siswa, wali kelas, dan pembagian kelas secara terstruktur di satu tempat.",
   },
   {
     icon: ClipboardCheck,
-    title: "Rekap Absensi",
-    description: "Rekap kehadiran otomatis per bulan, semester, dan tahun ajaran"
+    title: "Absensi Otomatis",
+    description: "Siswa datang, kamera mendeteksi, status hadir tercatat otomatis tanpa antrian panjang.",
   },
   {
     icon: BarChart3,
-    title: "Laporan & Grafik",
-    description: "Visualisasi data kehadiran dengan grafik interaktif dan laporan lengkap"
-  }
+    title: "Laporan Real-time",
+    description: "Rekap harian, bulanan, hingga semester siap diunduh dengan tampilan yang rapi.",
+  },
 ];
 
 const stats = [
   { value: "99%", label: "Akurasi Deteksi" },
-  { value: "<1s", label: "Waktu Proses" },
+  { value: "1-2s", label: "Waktu Verifikasi" },
   { value: "24/7", label: "Sistem Aktif" },
   { value: "100%", label: "Data Aman" },
 ];
 
-const logo = "/logo.png";
+const steps = [
+  {
+    icon: UserPlus,
+    title: "Daftarkan Guru",
+    description: "Buat akun guru dan lengkapi informasi dasar kelas.",
+  },
+  {
+    icon: Camera,
+    title: "Enroll Wajah",
+    description: "Rekam beberapa sampel wajah siswa agar terdeteksi stabil.",
+  },
+  {
+    icon: ClipboardCheck,
+    title: "Scan Otomatis",
+    description: "Siswa hadir cukup menghadap kamera untuk tercatat.",
+  },
+  {
+    icon: BarChart3,
+    title: "Unduh Laporan",
+    description: "Rekap kehadiran langsung tersedia dalam format yang rapi.",
+  },
+];
+
+const trustItems = [
+  {
+    icon: Shield,
+    title: "Keamanan Data",
+    description: "Data tersimpan rapi dan hanya dapat diakses oleh admin yang berwenang.",
+  },
+  {
+    icon: Clock,
+    title: "Rekap Harian Otomatis",
+    description: "Setiap absensi langsung masuk laporan tanpa input ulang.",
+  },
+  {
+    icon: Zap,
+    title: "Cepat dan Ringan",
+    description: "Antarmuka ringan untuk perangkat sekolah dengan respon cepat.",
+  },
+];
+
+const logo = "/Rasyidin%20Logo.jpeg";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
 };
 
-const stagger = {
+const fadeIn: Variants = {
+  hidden: { opacity: 0 },
+  visible: { opacity: 1, transition: { duration: 0.6 } },
+};
+
+const stagger: Variants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.12 } },
+};
+
+const slowStagger: Variants = {
+  hidden: {},
+  visible: { transition: { staggerChildren: 0.08 } },
 };
 
 const Index = () => {
@@ -151,7 +205,6 @@ const Index = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      {/* Header */}
       <header className="fixed top-0 left-0 right-0 z-50 glass-effect">
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between">
@@ -166,8 +219,8 @@ const Index = () => {
               <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                 Fitur
               </a>
-              <a href="#about" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                Tentang
+              <a href="#workflow" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+                Alur
               </a>
               <a href="#daftar-guru" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
                 Daftar Guru
@@ -183,407 +236,415 @@ const Index = () => {
         </div>
       </header>
 
-      {/* Hero Section */}
-      <section className="relative pt-32 pb-20 overflow-hidden">
-        {/* Background decoration */}
-        <div className="absolute inset-0 gradient-hero opacity-5" />
-        <div className="absolute top-20 right-0 w-96 h-96 bg-primary/10 rounded-full blur-3xl" />
-        <div className="absolute bottom-0 left-0 w-80 h-80 bg-secondary/10 rounded-full blur-3xl" />
-        
-        <div className="container mx-auto px-4 relative z-10">
-          <motion.div
-            className="max-w-4xl mx-auto text-center"
-            variants={stagger}
-            initial="hidden"
-            animate="visible"
-          >
-            <motion.div
-              className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6"
-              variants={fadeUp}
-            >
-              <Sparkles className="w-4 h-4" />
-              Sistem Absensi Modern dengan Face Recognition
-            </motion.div>
-            
-            <motion.h1
-              className="text-4xl md:text-5xl lg:text-6xl font-extrabold text-foreground mb-6 leading-tight"
-              variants={fadeUp}
-            >
-              Absensi{" "}
-              <span className="text-gradient">Digital</span>{" "}
-              untuk TK Khulafaur Arrasyidin
-            </motion.h1>
-            
-            <motion.p
-              className="text-lg md:text-xl text-muted-foreground mb-8 max-w-2xl mx-auto"
-              variants={fadeUp}
-            >
-              Platform absensi berbasis face recognition yang modern, cepat, dan akurat. 
-              Kelola kehadiran siswa dengan mudah dalam satu sistem terintegrasi.
-            </motion.p>
-            
-            <motion.div
-              className="flex flex-col sm:flex-row items-center justify-center gap-4"
-              variants={fadeUp}
-            >
-              <Button asChild variant="hero" size="xl" className="group">
-                <Link href="/login">
-                  Mulai Sekarang
-                  <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
-                </Link>
-              </Button>
-              <a href="#features">
-                <Button variant="outline" size="xl">
-                  Lihat Fitur
-                </Button>
-              </a>
-            </motion.div>
-          </motion.div>
-
-          {/* Stats */}
-          <motion.div
-            className="mt-20 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl mx-auto"
-            variants={stagger}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-          >
-            {stats.map((stat) => (
-              <motion.div 
-                key={stat.label}
-                className="text-center p-6 rounded-2xl bg-card shadow-card"
-                variants={fadeUp}
-              >
-                <div className="text-3xl md:text-4xl font-bold text-gradient mb-2">
-                  {stat.value}
-                </div>
-                <div className="text-sm text-muted-foreground">{stat.label}</div>
+      <main>
+        <section className="relative pt-36 pb-24 overflow-hidden">
+          <div className="absolute inset-0">
+            <div className="absolute -top-28 -right-20 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
+            <div className="absolute bottom-0 left-0 h-96 w-96 rounded-full bg-secondary/20 blur-3xl" />
+            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(45,212,191,0.16),rgba(255,255,255,0))]" />
+          </div>
+          <div className="container mx-auto px-4 relative z-10">
+            <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-12 items-center">
+              <motion.div variants={stagger} initial="hidden" animate="visible">
+                <motion.div
+                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6"
+                  variants={fadeUp}
+                >
+                  <Sparkles className="w-4 h-4" />
+                  Absensi digital berbasis face recognition
+                </motion.div>
+                <motion.h1
+                  className="text-4xl md:text-6xl font-extrabold text-foreground leading-tight"
+                  variants={fadeUp}
+                >
+                  Absensi <span className="text-shiny">Digital</span> yang rapi dan cepat untuk TK Khulafaur Arrasyidin
+                </motion.h1>
+                <motion.p className="mt-6 text-lg text-muted-foreground max-w-2xl" variants={fadeUp}>
+                  Sistem absensi modern yang fokus pada kecepatan, akurasi, dan kemudahan. Guru tinggal arahkan kamera,
+                  laporan langsung tersusun otomatis.
+                </motion.p>
+                <motion.div className="mt-8 flex flex-col sm:flex-row items-center gap-4" variants={fadeUp}>
+                  <Button asChild variant="hero" size="xl" className="group">
+                    <Link href="/login">
+                      Mulai Sekarang
+                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                    </Link>
+                  </Button>
+                  <a href="#daftar-guru">
+                    <Button variant="outline" size="xl">
+                      Daftar Guru
+                    </Button>
+                  </a>
+                </motion.div>
               </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
 
-      {/* Features Section */}
-      <section id="features" className="py-20 bg-muted/50">
-        <div className="container mx-auto px-4">
-          <motion.div
-            className="text-center mb-16"
-            variants={stagger}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-          >
-            <motion.h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4" variants={fadeUp}>
-              Fitur <span className="text-gradient">Unggulan</span>
-            </motion.h2>
-            <motion.p className="text-muted-foreground max-w-2xl mx-auto" variants={fadeUp}>
-              Dilengkapi dengan berbagai fitur canggih untuk memudahkan pengelolaan absensi sekolah
-            </motion.p>
-          </motion.div>
-
-          <motion.div
-            className="grid md:grid-cols-2 lg:grid-cols-4 gap-6"
-            variants={stagger}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.2 }}
-          >
-            {features.map((feature) => (
-              <motion.div 
-                key={feature.title}
-                className="group p-6 rounded-2xl bg-card shadow-card hover:shadow-soft transition-all duration-300 hover:-translate-y-1"
-                variants={fadeUp}
-              >
-                <div className="w-14 h-14 rounded-xl gradient-primary flex items-center justify-center mb-4 group-hover:scale-110 transition-transform">
-                  <feature.icon className="w-7 h-7 text-primary-foreground" />
+              <motion.div className="relative" variants={fadeIn} initial="hidden" animate="visible">
+                <div className="absolute -inset-6 rounded-[32px] bg-[radial-gradient(circle_at_top,rgba(45,212,191,0.35),rgba(255,255,255,0))] blur-2xl" />
+                <div className="relative rounded-3xl border border-white/60 bg-white/85 p-6 shadow-soft backdrop-blur">
+                  <div className="flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground">
+                    <span>Live Face Scan</span>
+                    <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">Aktif</span>
+                  </div>
+                  <div className="mt-6 grid gap-4">
+                    <div className="rounded-2xl bg-muted/60 p-4">
+                      <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-2xl gradient-primary flex items-center justify-center">
+                          <Camera className="h-6 w-6 text-primary-foreground" />
+                        </div>
+                        <div>
+                          <p className="text-sm font-semibold text-foreground">Deteksi wajah berjalan</p>
+                          <p className="text-xs text-muted-foreground">Kelas TK A1 - 24 siswa terdaftar</p>
+                        </div>
+                      </div>
+                    </div>
+                    <div className="rounded-2xl border border-border/60 bg-card p-4">
+                      <div className="flex items-center justify-between">
+                        <div>
+                          <p className="text-sm text-muted-foreground">Hadir hari ini</p>
+                          <p className="text-2xl font-bold text-foreground">92%</p>
+                        </div>
+                        <div className="text-right">
+                          <p className="text-xs text-muted-foreground">Jam puncak</p>
+                          <p className="text-sm font-semibold text-foreground">07:10 - 07:30</p>
+                        </div>
+                      </div>
+                      <div className="mt-3 h-2 rounded-full bg-muted">
+                        <div className="h-full w-[92%] rounded-full gradient-primary" />
+                      </div>
+                    </div>
+                    <div className="rounded-2xl bg-primary/10 p-4">
+                      <p className="text-xs uppercase tracking-widest text-primary">Notifikasi</p>
+                      <p className="mt-2 text-sm font-semibold text-foreground">
+                        Absensi otomatis tersinkron ke laporan harian.
+                      </p>
+                    </div>
+                  </div>
                 </div>
-                <h3 className="text-lg font-bold text-foreground mb-2">{feature.title}</h3>
-                <p className="text-sm text-muted-foreground">{feature.description}</p>
               </motion.div>
-            ))}
-          </motion.div>
-        </div>
-      </section>
+            </div>
 
-      {/* About Section */}
-      <section id="about" className="py-20">
-        <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-2 gap-12 items-center">
             <motion.div
+              className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl"
+              variants={stagger}
+              initial="hidden"
+              animate="visible"
+            >
+              {stats.map((stat) => (
+                <motion.div
+                  key={stat.label}
+                  className="rounded-2xl bg-card/80 border border-border/60 p-5 shadow-card"
+                  variants={fadeUp}
+                >
+                  <p className="text-2xl font-bold text-foreground">{stat.value}</p>
+                  <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </section>
+
+        <section id="features" className="py-20 bg-muted/40">
+          <div className="container mx-auto px-4">
+            <motion.div
+              className="text-center max-w-3xl mx-auto"
               variants={stagger}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, amount: 0.3 }}
             >
-              <motion.h2 className="text-3xl md:text-4xl font-bold text-foreground mb-6" variants={fadeUp}>
-                Mengapa Memilih <span className="text-gradient">Sistem Kami?</span>
+              <motion.h2 className="text-3xl md:text-4xl font-bold text-foreground" variants={fadeUp}>
+                Fitur <span className="text-shiny">Unggulan</span>
               </motion.h2>
-              <motion.p className="text-muted-foreground mb-8" variants={fadeUp}>
-                Sistem absensi TK Khulafaur Arrasyidin dirancang khusus untuk kebutuhan 
-                pendidikan anak usia dini dengan antarmuka yang mudah digunakan dan 
-                fitur yang lengkap.
+              <motion.p className="mt-4 text-muted-foreground" variants={fadeUp}>
+                Semua fitur dirancang untuk mempercepat absensi tanpa kehilangan detail penting.
               </motion.p>
-              
-              <motion.div className="space-y-4" variants={stagger}>
-                {[
-                  "Teknologi face recognition akurat dan cepat",
-                  "Laporan kehadiran real-time untuk orang tua",
-                  "Dashboard admin yang komprehensif",
-                  "Data terenkripsi dan aman",
-                  "Integrasi dengan sistem akademik sekolah"
-                ].map((item, index) => (
-                  <motion.div key={index} className="flex items-center gap-3" variants={fadeUp}>
-                    <div className="w-6 h-6 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
-                      <CheckCircle2 className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                    <span className="text-foreground">{item}</span>
-                  </motion.div>
-                ))}
-              </motion.div>
-
-              <motion.div className="inline-block mt-8" variants={fadeUp}>
-                <Button asChild variant="gradient" size="lg">
-                  <Link href="/login">
-                    Akses Dashboard
-                    <ArrowRight className="w-4 h-4" />
-                  </Link>
-                </Button>
-              </motion.div>
             </motion.div>
 
             <motion.div
-              className="relative"
+              className="mt-12 grid md:grid-cols-2 lg:grid-cols-4 gap-6"
+              variants={stagger}
+              initial="hidden"
+              whileInView="visible"
+              viewport={{ once: true, amount: 0.2 }}
+            >
+              {features.map((feature) => (
+                <motion.div
+                  key={feature.title}
+                  className="group rounded-3xl bg-card border border-border/60 p-6 shadow-card hover:shadow-soft transition-all"
+                  variants={fadeUp}
+                >
+                  <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mb-4">
+                    <feature.icon className="w-7 h-7 text-primary-foreground" />
+                  </div>
+                  <h3 className="text-lg font-bold text-foreground">{feature.title}</h3>
+                  <p className="text-sm text-muted-foreground mt-2">{feature.description}</p>
+                </motion.div>
+              ))}
+            </motion.div>
+          </div>
+        </section>
+
+        <section id="workflow" className="py-20">
+          <div className="container mx-auto px-4">
+            <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center">
+              <motion.div
+                variants={stagger}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.3 }}
+              >
+                <motion.h2 className="text-3xl md:text-4xl font-bold text-foreground" variants={fadeUp}>
+                  Alur kerja yang <span className="text-shiny">jelas</span> untuk guru
+                </motion.h2>
+                <motion.p className="mt-4 text-muted-foreground" variants={fadeUp}>
+                  Dari daftar guru sampai laporan hadir, semua langkah dibuat sederhana agar staf sekolah tidak perlu
+                  mengulang proses yang rumit.
+                </motion.p>
+                <motion.div className="mt-10 grid sm:grid-cols-2 gap-6" variants={slowStagger}>
+                  {steps.map((step, index) => (
+                    <motion.div key={step.title} className="rounded-2xl border border-border/60 p-5 bg-card" variants={fadeUp}>
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                          <step.icon className="w-5 h-5 text-primary" />
+                        </div>
+                        <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
+                          Langkah {index + 1}
+                        </span>
+                      </div>
+                      <h3 className="mt-4 text-base font-semibold text-foreground">{step.title}</h3>
+                      <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </motion.div>
+
+              <motion.div
+                className="rounded-3xl border border-border/60 bg-gradient-to-br from-white via-white to-muted/60 p-8 shadow-soft"
+                variants={fadeIn}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.3 }}
+              >
+                <div className="flex items-center gap-3">
+                  <div className="w-12 h-12 rounded-2xl gradient-primary flex items-center justify-center">
+                    <Shield className="w-6 h-6 text-primary-foreground" />
+                  </div>
+                  <div>
+                    <h3 className="text-lg font-bold text-foreground">Kepercayaan Sekolah</h3>
+                    <p className="text-sm text-muted-foreground">Data hadir otomatis, laporan selalu siap.</p>
+                  </div>
+                </div>
+                <div className="mt-6 space-y-4">
+                  {trustItems.map((item) => (
+                    <div key={item.title} className="flex items-start gap-3">
+                      <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
+                        <item.icon className="w-4 h-4 text-primary" />
+                      </div>
+                      <div>
+                        <p className="text-sm font-semibold text-foreground">{item.title}</p>
+                        <p className="text-sm text-muted-foreground">{item.description}</p>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+                <div className="mt-8 rounded-2xl bg-primary/10 p-4">
+                  <p className="text-sm font-semibold text-foreground">Monitoring Harian</p>
+                  <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
+                    <span>Siswa terdaftar</span>
+                    <span className="font-semibold text-foreground">240</span>
+                  </div>
+                  <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
+                    <span>Hadir hari ini</span>
+                    <span className="font-semibold text-foreground">219</span>
+                  </div>
+                </div>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        <section id="daftar-guru" className="py-20 bg-muted/40">
+          <div className="container mx-auto px-4">
+            <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center">
+              <motion.div
+                variants={stagger}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.3 }}
+              >
+                <motion.h2 className="text-3xl md:text-4xl font-bold text-foreground" variants={fadeUp}>
+                  Daftar akun <span className="text-shiny">guru</span> dalam hitungan menit
+                </motion.h2>
+                <motion.p className="mt-4 text-muted-foreground" variants={fadeUp}>
+                  Setelah akun aktif, guru bisa langsung mengelola kelas, siswa, serta absensi otomatis dari dashboard.
+                </motion.p>
+                <motion.div className="mt-8 space-y-4" variants={slowStagger}>
+                  {[
+                    "Akses dashboard guru dan kelas secara real-time",
+                    "Enroll wajah siswa langsung dari kamera",
+                    "Riwayat absensi tersimpan otomatis",
+                  ].map((item) => (
+                    <motion.div key={item} className="flex items-center gap-3" variants={fadeUp}>
+                      <div className="w-6 h-6 rounded-full gradient-primary flex items-center justify-center">
+                        <CheckCircle2 className="w-4 h-4 text-primary-foreground" />
+                      </div>
+                      <span className="text-foreground">{item}</span>
+                    </motion.div>
+                  ))}
+                </motion.div>
+              </motion.div>
+
+              <motion.div
+                variants={fadeIn}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.3 }}
+              >
+                <Card className="border-0 shadow-soft bg-card/95">
+                  <CardHeader>
+                    <CardTitle>Buat Akun Guru</CardTitle>
+                    <CardDescription>Isi data berikut untuk mendaftar.</CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <form onSubmit={handleTeacherRegister} className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="teacher-name">Nama Lengkap</Label>
+                        <Input
+                          id="teacher-name"
+                          placeholder="Nama guru"
+                          value={teacherForm.fullName}
+                          onChange={(event) =>
+                            setTeacherForm((prev) => ({ ...prev, fullName: event.target.value }))
+                          }
+                          required
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="teacher-email">Email</Label>
+                        <div className="relative">
+                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="teacher-email"
+                            type="email"
+                            placeholder="nama@email.com"
+                            value={teacherForm.email}
+                            onChange={(event) =>
+                              setTeacherForm((prev) => ({ ...prev, email: event.target.value }))
+                            }
+                            className="pl-9"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="teacher-phone">Nomor HP (opsional)</Label>
+                        <div className="relative">
+                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="teacher-phone"
+                            placeholder="08xxxxxxxxxx"
+                            value={teacherForm.phone}
+                            onChange={(event) =>
+                              setTeacherForm((prev) => ({ ...prev, phone: event.target.value }))
+                            }
+                            className="pl-9"
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="teacher-password">Password</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="teacher-password"
+                            type="password"
+                            placeholder="Minimal 6 karakter"
+                            value={teacherForm.password}
+                            onChange={(event) =>
+                              setTeacherForm((prev) => ({ ...prev, password: event.target.value }))
+                            }
+                            className="pl-9"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <div className="space-y-2">
+                        <Label htmlFor="teacher-confirm">Konfirmasi Password</Label>
+                        <div className="relative">
+                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Input
+                            id="teacher-confirm"
+                            type="password"
+                            placeholder="Ulangi password"
+                            value={teacherForm.confirmPassword}
+                            onChange={(event) =>
+                              setTeacherForm((prev) => ({ ...prev, confirmPassword: event.target.value }))
+                            }
+                            className="pl-9"
+                            required
+                          />
+                        </div>
+                      </div>
+                      <Button type="submit" variant="gradient" className="w-full" disabled={isRegistering}>
+                        {isRegistering ? "Mendaftarkan..." : "Daftar Sekarang"}
+                      </Button>
+                      <p className="text-xs text-muted-foreground text-center">
+                        Sudah punya akun?{" "}
+                        <Link href="/login" className="text-primary font-medium hover:underline">
+                          Login di sini
+                        </Link>
+                      </p>
+                    </form>
+                  </CardContent>
+                </Card>
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        <section className="py-20">
+          <div className="container mx-auto px-4">
+            <motion.div
+              className="gradient-primary rounded-3xl p-12 text-center relative overflow-hidden"
               variants={fadeUp}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, amount: 0.3 }}
             >
-              <div className="absolute inset-0 gradient-primary rounded-3xl blur-3xl opacity-20" />
-              <div className="relative bg-card rounded-3xl p-8 shadow-soft">
-                <div className="flex items-center gap-4 mb-6">
-                  <img src={logo} alt="Logo" className="w-16 h-16 object-contain" />
-                  <div>
-                    <h3 className="font-bold text-xl text-foreground">TK Khulafaur Arrasyidin</h3>
-                    <p className="text-sm text-muted-foreground">Mencetak Generasi Qurani</p>
-                  </div>
-                </div>
-                <div className="space-y-4">
-                  <div className="p-4 rounded-xl bg-muted/50">
-                    <div className="flex items-center justify-between mb-2">
-                      <span className="text-sm text-muted-foreground">Kehadiran Hari Ini</span>
-                      <span className="text-sm font-semibold text-success">95%</span>
-                    </div>
-                    <div className="h-2 bg-muted rounded-full overflow-hidden">
-                      <div className="h-full w-[95%] gradient-primary rounded-full" />
-                    </div>
-                  </div>
-                  <div className="grid grid-cols-3 gap-4">
-                    <div className="text-center p-3 rounded-xl bg-primary/10">
-                      <div className="text-2xl font-bold text-primary">12</div>
-                      <div className="text-xs text-muted-foreground">Kelas</div>
-                    </div>
-                    <div className="text-center p-3 rounded-xl bg-secondary/10">
-                      <div className="text-2xl font-bold text-secondary">240</div>
-                      <div className="text-xs text-muted-foreground">Siswa</div>
-                    </div>
-                    <div className="text-center p-3 rounded-xl bg-accent/30">
-                      <div className="text-2xl font-bold text-accent-foreground">24</div>
-                      <div className="text-xs text-muted-foreground">Guru</div>
-                    </div>
-                  </div>
-                </div>
+              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.35),rgba(255,255,255,0))]" />
+              <div className="relative z-10">
+                <Sparkles className="w-16 h-16 text-primary-foreground/80 mx-auto mb-6" />
+                <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
+                  Siap menggunakan sistem absensi modern?
+                </h2>
+                <p className="text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
+                  Login sekarang untuk mengakses dashboard dan mulai mengelola absensi siswa dengan lebih efisien.
+                </p>
+                <Button asChild variant="accent" size="xl" className="shadow-lg">
+                  <Link href="/login">
+                    Login ke Dashboard
+                    <ArrowRight className="w-5 h-5" />
+                  </Link>
+                </Button>
               </div>
             </motion.div>
           </div>
-        </div>
-      </section>
+        </section>
+      </main>
 
-      {/* Register Teacher Section */}
-      <section id="daftar-guru" className="py-20 bg-muted/40">
-        <div className="container mx-auto px-4">
-          <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-10 items-center">
-            <motion.div
-              variants={stagger}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.3 }}
-            >
-              <motion.h2 className="text-3xl md:text-4xl font-bold text-foreground mb-4" variants={fadeUp}>
-                Daftar Akun <span className="text-gradient">Guru</span>
-              </motion.h2>
-              <motion.p className="text-muted-foreground mb-6" variants={fadeUp}>
-                Buat akun guru untuk mengelola kelas, siswa, dan absensi. Pastikan menggunakan email aktif.
-              </motion.p>
-              <motion.div className="space-y-4" variants={stagger}>
-                {[
-                  "Akses kelas dan absensi langsung dari dashboard guru",
-                  "Enroll wajah siswa untuk absensi yang akurat",
-                  "Kelola daftar siswa di kelas",
-                ].map((item) => (
-                  <motion.div key={item} className="flex items-center gap-3" variants={fadeUp}>
-                    <div className="w-6 h-6 rounded-full gradient-primary flex items-center justify-center flex-shrink-0">
-                      <CheckCircle2 className="w-4 h-4 text-primary-foreground" />
-                    </div>
-                    <span className="text-foreground">{item}</span>
-                  </motion.div>
-                ))}
-              </motion.div>
-            </motion.div>
-
-            <motion.div
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.3 }}
-            >
-              <Card className="border-0 shadow-soft bg-card/95">
-                <CardHeader>
-                  <CardTitle>Buat Akun Guru</CardTitle>
-                  <CardDescription>Isi data berikut untuk mendaftar.</CardDescription>
-                </CardHeader>
-                <CardContent>
-                  <form onSubmit={handleTeacherRegister} className="space-y-4">
-                    <div className="space-y-2">
-                      <Label htmlFor="teacher-name">Nama Lengkap</Label>
-                      <Input
-                        id="teacher-name"
-                        placeholder="Nama guru"
-                        value={teacherForm.fullName}
-                        onChange={(event) =>
-                          setTeacherForm((prev) => ({ ...prev, fullName: event.target.value }))
-                        }
-                        required
-                      />
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="teacher-email">Email</Label>
-                      <div className="relative">
-                        <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="teacher-email"
-                          type="email"
-                          placeholder="nama@email.com"
-                          value={teacherForm.email}
-                          onChange={(event) =>
-                            setTeacherForm((prev) => ({ ...prev, email: event.target.value }))
-                          }
-                          className="pl-9"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="teacher-phone">Nomor HP (opsional)</Label>
-                      <div className="relative">
-                        <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="teacher-phone"
-                          placeholder="08xxxxxxxxxx"
-                          value={teacherForm.phone}
-                          onChange={(event) =>
-                            setTeacherForm((prev) => ({ ...prev, phone: event.target.value }))
-                          }
-                          className="pl-9"
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="teacher-password">Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="teacher-password"
-                          type="password"
-                          placeholder="Minimal 6 karakter"
-                          value={teacherForm.password}
-                          onChange={(event) =>
-                            setTeacherForm((prev) => ({ ...prev, password: event.target.value }))
-                          }
-                          className="pl-9"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <div className="space-y-2">
-                      <Label htmlFor="teacher-confirm">Konfirmasi Password</Label>
-                      <div className="relative">
-                        <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-                        <Input
-                          id="teacher-confirm"
-                          type="password"
-                          placeholder="Ulangi password"
-                          value={teacherForm.confirmPassword}
-                          onChange={(event) =>
-                            setTeacherForm((prev) => ({ ...prev, confirmPassword: event.target.value }))
-                          }
-                          className="pl-9"
-                          required
-                        />
-                      </div>
-                    </div>
-                    <Button type="submit" variant="gradient" className="w-full" disabled={isRegistering}>
-                      {isRegistering ? "Mendaftarkan..." : "Daftar Sekarang"}
-                    </Button>
-                    <p className="text-xs text-muted-foreground text-center">
-                      Sudah punya akun?{" "}
-                      <Link href="/login" className="text-primary font-medium hover:underline">
-                        Login di sini
-                      </Link>
-                    </p>
-                  </form>
-                </CardContent>
-              </Card>
-            </motion.div>
-          </div>
-        </div>
-      </section>
-
-      {/* CTA Section */}
-      <section className="py-20">
-        <div className="container mx-auto px-4">
-          <motion.div
-            className="gradient-primary rounded-3xl p-12 text-center relative overflow-hidden"
-            variants={fadeUp}
-            initial="hidden"
-            whileInView="visible"
-            viewport={{ once: true, amount: 0.3 }}
-          >
-            <div className="absolute inset-0 bg-[url('data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjAiIGhlaWdodD0iNjAiIHhtbG5zPSJodHRwOi8vd3d3LnczLm9yZy8yMDAwL3N2ZyI+PGRlZnM+PHBhdHRlcm4gaWQ9ImdyaWQiIHdpZHRoPSI2MCIgaGVpZ2h0PSI2MCIgcGF0dGVyblVuaXRzPSJ1c2VyU3BhY2VPblVzZSI+PHBhdGggZD0iTSA2MCAwIEwgMCAwIDAgNjAiIGZpbGw9Im5vbmUiIHN0cm9rZT0id2hpdGUiIHN0cm9rZS13aWR0aD0iMC41IiBzdHJva2Utb3BhY2l0eT0iMC4xIi8+PC9wYXR0ZXJuPjwvZGVmcz48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSJ1cmwoI2dyaWQpIi8+PC9zdmc+')] opacity-50" />
-            <div className="relative z-10">
-              <Shield className="w-16 h-16 text-primary-foreground/80 mx-auto mb-6" />
-              <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
-                Siap Menggunakan Sistem Absensi Digital?
-              </h2>
-              <p className="text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
-                Login sekarang untuk mengakses dashboard dan mulai mengelola absensi siswa 
-                dengan lebih efisien dan modern.
-              </p>
-              <Button asChild variant="accent" size="xl" className="shadow-lg">
-                <Link href="/login">
-                  Login ke Dashboard
-                  <ArrowRight className="w-5 h-5" />
-                </Link>
-              </Button>
-            </div>
-          </motion.div>
-        </div>
-      </section>
-
-      {/* Footer */}
-      <footer className="py-8 border-t border-border">
+      <footer className="py-10 border-t border-border">
         <div className="container mx-auto px-4">
           <div className="flex flex-col md:flex-row items-center justify-between gap-4">
             <div className="flex items-center gap-3">
               <img src={logo} alt="Logo" className="h-10 w-10 object-contain" />
               <span className="text-sm text-muted-foreground">
-                © 2026 TK Khulafaur Arrasyidin. All rights reserved.
+                Ac 2026 TK Khulafaur Arrasyidin. All rights reserved.
               </span>
             </div>
             <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <a href="#" className="hover:text-primary transition-colors">Bantuan</a>
-              <a href="#" className="hover:text-primary transition-colors">Kontak</a>
-              <a href="#" className="hover:text-primary transition-colors">Kebijakan Privasi</a>
+              <a href="#features" className="hover:text-primary transition-colors">Fitur</a>
+              <a href="#workflow" className="hover:text-primary transition-colors">Alur</a>
+              <a href="#daftar-guru" className="hover:text-primary transition-colors">Daftar Guru</a>
             </div>
           </div>
         </div>

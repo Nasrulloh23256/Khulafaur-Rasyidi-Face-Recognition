@@ -168,3 +168,19 @@
     50% { opacity: 0.7; }
   }
 }
+
+
+@layer utilities {
+  .text-shiny {
+    background: linear-gradient(110deg, hsl(45 95% 62%), hsl(187 85% 43%), hsl(169 76% 45%), hsl(45 95% 62%));
+    background-size: 200% 100%;
+    -webkit-background-clip: text;
+    color: transparent;
+    animation: shine 3s linear infinite;
+  }
+
+  @keyframes shine {
+    0% { background-position: 0% 50%; }
+    100% { background-position: 200% 50%; }
+  }
+}
