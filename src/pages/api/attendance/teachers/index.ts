@@ -36,7 +36,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       phone: true,
       faceImageUrl: true,
       faceEmbedding: true,
-      attendances: {
+      teacherAttendances: {
         where: { date },
         select: { status: true, checkInTime: true, checkOutTime: true, notes: true },
       },
@@ -44,7 +44,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   });
 
   const data = teachers.map((teacher) => {
-    const attendance = teacher.attendances[0];
+    const attendance = teacher.teacherAttendances[0];
     return {
       id: teacher.id,
       fullName: teacher.fullName,

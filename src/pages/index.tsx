@@ -6,6 +6,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
 import BrandMark from "@/components/BrandMark";
+import ShinyText from "@/components/ShinyText";
+import MagicBentoCard from "@/components/MagicBentoCard";
 import { motion, type Variants } from "framer-motion";
 import {
   ArrowRight,
