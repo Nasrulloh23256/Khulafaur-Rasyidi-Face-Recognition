@@ -16,7 +16,8 @@ import {
   Menu,
   Bell,
   Search,
-  Camera
+  Camera,
+  UserCheck
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -30,6 +31,7 @@ const adminMenuItems = [
   { icon: GraduationCap, label: "Siswa", path: "/dashboard/siswa" },
   { icon: Camera, label: "Enroll Wajah", path: "/dashboard/enroll-wajah" },
   { icon: Users, label: "Pengajar", path: "/dashboard/wali-kelas" },
+  { icon: UserCheck, label: "Absensi Pengajar", path: "/dashboard/absensi-pengajar" },
   { icon: Camera, label: "Kehadiran", path: "/dashboard/kehadiran" },
   { icon: FileText, label: "Laporan", path: "/dashboard/laporan" },
   { icon: ClipboardCheck, label: "Rekap Absensi", path: "/dashboard/rekap" },
@@ -39,6 +41,7 @@ const adminMenuItems = [
 ];
 
 const teacherMenuItems = [
+  { icon: UserCheck, label: "Absensi Saya", path: "/dashboard/absensi-pengajar" },
   { icon: Camera, label: "Kehadiran", path: "/dashboard/kehadiran" },
   { icon: BookOpen, label: "Kelas", path: "/dashboard/kelas" },
   { icon: GraduationCap, label: "Siswa", path: "/dashboard/siswa" },

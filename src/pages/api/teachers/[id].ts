@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { ensureTeacherAttendanceTable } from "@/lib/teacher-attendance";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const id = typeof req.query.id === "string" ? req.query.id : "";
@@ -45,6 +46,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   if (req.method === "DELETE") {
     try {
+      await ensureTeacherAttendanceTable();
+
       const teacher = await prisma.teacher.findUnique({
         where: { id },
         select: { id: true, userId: true },
@@ -58,6 +61,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           where: { homeroomTeacherId: id },
           data: { homeroomTeacherId: null },
         });
+
+        await tx.teacherAttendance.deleteMany({ where: { teacherId: id } });
 
         await tx.teacher.delete({ where: { id } });
 
