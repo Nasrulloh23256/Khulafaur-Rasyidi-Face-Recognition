@@ -29,7 +29,7 @@ const adminMenuItems = [
   { icon: BookOpen, label: "Kelas", path: "/dashboard/kelas" },
   { icon: GraduationCap, label: "Siswa", path: "/dashboard/siswa" },
   { icon: Camera, label: "Enroll Wajah", path: "/dashboard/enroll-wajah" },
-  { icon: Users, label: "Wali Kelas", path: "/dashboard/wali-kelas" },
+  { icon: Users, label: "Pengajar", path: "/dashboard/wali-kelas" },
   { icon: Camera, label: "Kehadiran", path: "/dashboard/kehadiran" },
   { icon: FileText, label: "Laporan", path: "/dashboard/laporan" },
   { icon: ClipboardCheck, label: "Rekap Absensi", path: "/dashboard/rekap" },
@@ -43,7 +43,6 @@ const teacherMenuItems = [
   { icon: BookOpen, label: "Kelas", path: "/dashboard/kelas" },
   { icon: GraduationCap, label: "Siswa", path: "/dashboard/siswa" },
   { icon: Camera, label: "Enroll Wajah", path: "/dashboard/enroll-wajah" },
-  { icon: Users, label: "Wali Kelas", path: "/dashboard/wali-kelas" },
 ];
 
 type AuthUser = {
@@ -141,9 +140,9 @@ const DashboardLayout = ({ children, title, subtitle }: DashboardLayoutProps) =>
           {!sidebarCollapsed && (
             <div className="overflow-hidden">
               <h2 className="font-bold text-sidebar-foreground text-sm leading-tight">
-                TK Khulafaur Arrasyidin
+                {"\u03A9hm Study Club"}
               </h2>
-              <p className="text-xs text-sidebar-foreground/70">Sistem Absensi</p>
+              <p className="text-xs text-sidebar-foreground/70">Absensi Bimbel</p>
             </div>
           )}
         </div>
