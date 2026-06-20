@@ -7,7 +7,8 @@ import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Eye, EyeOff, Lock, Mail, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-const logo = "/logo.png";
+import BrandMark from "@/components/BrandMark";
+
 const brandName = "\u03A9hm Study Club";
 
 const Login = () => {
@@ -95,11 +96,7 @@ const Login = () => {
           <Card className="border-0 bg-card/95 shadow-soft backdrop-blur-sm">
             <CardHeader className="text-center pb-4">
               <div className="mx-auto mb-4">
-                <img
-                  src={logo}
-                  alt={`Logo ${brandName}`}
-                  className="mx-auto h-20 w-20 object-contain"
-                />
+                <BrandMark className="mx-auto h-20 w-20" textClassName="text-3xl" />
               </div>
               <CardTitle className="text-2xl font-bold text-foreground">
                 Login Absensi

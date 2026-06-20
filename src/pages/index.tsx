@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import BrandMark from "@/components/BrandMark";
 import { motion, type Variants } from "framer-motion";
 import {
   ArrowRight,
@@ -23,7 +24,6 @@ import {
   Users,
 } from "lucide-react";
 
-const logo = "/logo.png";
 const brandName = "\u03A9hm Study Club";
 
 const features = [
@@ -164,9 +164,7 @@ const Index = () => {
         <div className="container mx-auto px-4 py-4">
           <div className="flex items-center justify-between gap-4">
             <Link href="/" className="flex items-center gap-3">
-              <div className="flex h-12 w-12 items-center justify-center rounded-lg gradient-primary text-xl font-extrabold text-primary-foreground shadow-soft">
-                {"\u03A9"}
-              </div>
+              <BrandMark className="h-12 w-12" textClassName="text-xl" />
               <div>
                 <h1 className="text-lg font-extrabold leading-tight text-foreground">{brandName}</h1>
                 <p className="text-xs font-medium text-muted-foreground">Portal Absensi Bimbel</p>
@@ -563,7 +561,7 @@ const Index = () => {
       <footer className="border-t border-border bg-background py-8">
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 md:flex-row">
           <div className="flex items-center gap-3">
-            <img src={logo} alt={`Logo ${brandName}`} className="h-10 w-10 object-contain" />
+            <BrandMark className="h-10 w-10 flex-shrink-0" textClassName="text-lg" />
             <span className="text-sm font-medium text-muted-foreground">&copy; 2026 {brandName}. Portal Absensi Bimbel.</span>
           </div>
           <div className="flex items-center gap-6 text-sm font-semibold text-muted-foreground">

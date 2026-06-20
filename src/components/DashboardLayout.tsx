@@ -22,7 +22,7 @@ import Link from "next/link";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-const logo = "/logo.png";
+import BrandMark from "@/components/BrandMark";
 
 const adminMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
@@ -136,7 +136,7 @@ const DashboardLayout = ({ children, title, subtitle }: DashboardLayoutProps) =>
       >
         {/* Logo Section */}
         <div className="p-4 flex items-center gap-3 border-b border-sidebar-border">
-          <img src={logo} alt="Logo" className="w-12 h-12 object-contain flex-shrink-0" />
+          <BrandMark className="h-12 w-12 flex-shrink-0" textClassName="text-xl" />
           {!sidebarCollapsed && (
             <div className="overflow-hidden">
               <h2 className="font-bold text-sidebar-foreground text-sm leading-tight">

@@ -26,7 +26,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-const logo = "/logo.png";
+import BrandMark from "@/components/BrandMark";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", active: true },
@@ -208,7 +208,7 @@ const Dashboard = () => {
       >
         {/* Logo Section */}
         <div className="p-4 flex items-center gap-3 border-b border-sidebar-border">
-          <img src={logo} alt="Logo" className="w-12 h-12 object-contain flex-shrink-0" />
+          <BrandMark className="h-12 w-12 flex-shrink-0" textClassName="text-xl" />
           {!sidebarCollapsed && (
             <div className="overflow-hidden">
               <h2 className="font-bold text-sidebar-foreground text-sm leading-tight">

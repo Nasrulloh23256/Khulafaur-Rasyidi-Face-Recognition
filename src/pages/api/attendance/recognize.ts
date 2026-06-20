@@ -76,6 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     gender: student.gender,
     className: student.class?.name ?? "-",
   });
+  type RecognizableStudent = Parameters<typeof buildMatch>[0] & { faceEmbedding: unknown };
 
   const threshold = 0.55;
   const date = startOfDay(new Date());
@@ -134,7 +135,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     });
   }
 
-  const students = await prisma.student.findMany({
+  const students: RecognizableStudent[] = await prisma.student.findMany({
     where: { classId, faceEmbedding: { not: null } },
     select: {
       id: true,
@@ -151,9 +152,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   let bestDistance = Number.POSITIVE_INFINITY;
-  let bestStudent:
-    | (typeof students extends Array<infer U> ? U : never)
-    | null = null;
+  let bestStudent: RecognizableStudent | null = null;
   for (const student of students) {
     const embeddings = extractEmbeddings(student.faceEmbedding);
     if (embeddings.length === 0) continue;
