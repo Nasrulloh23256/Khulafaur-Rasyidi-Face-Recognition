@@ -84,7 +84,7 @@ const WaliKelasPage = () => {
     } catch (error) {
       toast({
         title: "Gagal memuat data",
-        description: "Tidak bisa mengambil data wali kelas",
+        description: "Tidak bisa mengambil data pengajar",
         variant: "destructive",
       });
     } finally {
@@ -119,7 +119,7 @@ const WaliKelasPage = () => {
     if (!form.fullName) {
       toast({
         title: "Data belum lengkap",
-        description: "Nama wali kelas wajib diisi",
+        description: "Nama pengajar wajib diisi",
         variant: "destructive",
       });
       return;
@@ -149,7 +149,7 @@ const WaliKelasPage = () => {
 
       toast({
         title: "Berhasil",
-        description: "Data wali kelas berhasil ditambahkan",
+        description: "Data pengajar berhasil ditambahkan",
       });
 
       setForm({ fullName: "", phone: "" });
@@ -173,7 +173,7 @@ const WaliKelasPage = () => {
     if (!editForm.fullName) {
       toast({
         title: "Data belum lengkap",
-        description: "Nama wali kelas wajib diisi",
+        description: "Nama pengajar wajib diisi",
         variant: "destructive",
       });
       return;
@@ -203,7 +203,7 @@ const WaliKelasPage = () => {
 
       toast({
         title: "Berhasil",
-        description: "Data wali kelas berhasil diperbarui",
+        description: "Data pengajar berhasil diperbarui",
       });
 
       handleEditOpenChange(false);
@@ -237,7 +237,7 @@ const WaliKelasPage = () => {
 
       toast({
         title: "Berhasil",
-        description: "Wali kelas berhasil dihapus",
+        description: "Pengajar berhasil dihapus",
       });
       setDeleteTarget(null);
       loadData();
@@ -253,7 +253,7 @@ const WaliKelasPage = () => {
   };
 
   return (
-    <DashboardLayout title="Wali Kelas" subtitle="Kelola data wali kelas dan kelasnya">
+    <DashboardLayout title="Pengajar" subtitle="Kelola data pengajar dan kelasnya">
       <div className="space-y-6">
         <div className="flex flex-col lg:flex-row gap-4 justify-between">
           <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 w-full lg:max-w-2xl">
@@ -263,7 +263,7 @@ const WaliKelasPage = () => {
                   <Users className="w-5 h-5 text-primary-foreground" />
                 </div>
                 <div>
-                  <p className="text-sm text-muted-foreground">Total Wali</p>
+                  <p className="text-sm text-muted-foreground">Total Pengajar</p>
                   <p className="text-xl font-bold text-foreground">{stats.total}</p>
                 </div>
               </CardContent>
@@ -285,20 +285,20 @@ const WaliKelasPage = () => {
             <DialogTrigger asChild>
               <Button variant="gradient">
                 <Plus className="w-4 h-4" />
-                Tambah Wali Kelas
+                Tambah Pengajar
               </Button>
             </DialogTrigger>
             <DialogContent>
               <DialogHeader>
-                <DialogTitle>Tambah Wali Kelas</DialogTitle>
-                <DialogDescription>Masukkan data wali kelas baru.</DialogDescription>
+                <DialogTitle>Tambah Pengajar</DialogTitle>
+                <DialogDescription>Masukkan data pengajar baru.</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4 py-2">
                 <div className="space-y-2">
                   <Label htmlFor="fullName">Nama Lengkap</Label>
                   <Input
                     id="fullName"
-                    placeholder="Nama wali kelas"
+                    placeholder="Nama pengajar"
                     value={form.fullName}
                     onChange={(event) => setForm((prev) => ({ ...prev, fullName: event.target.value }))}
                     required
@@ -328,7 +328,7 @@ const WaliKelasPage = () => {
 
         <Card className="border-0 shadow-card">
           <CardHeader>
-            <CardTitle>Daftar Wali Kelas</CardTitle>
+            <CardTitle>Daftar Pengajar</CardTitle>
           </CardHeader>
           <CardContent>
             <Table>
@@ -352,7 +352,7 @@ const WaliKelasPage = () => {
                 {!isLoading && teachers.length === 0 && (
                   <TableRow>
                     <TableCell colSpan={5} className="text-center text-muted-foreground">
-                      Belum ada wali kelas.
+                      Belum ada pengajar.
                     </TableCell>
                   </TableRow>
                 )}
@@ -397,15 +397,15 @@ const WaliKelasPage = () => {
       <Dialog open={isEditOpen} onOpenChange={handleEditOpenChange}>
         <DialogContent>
           <DialogHeader>
-            <DialogTitle>Edit Wali Kelas</DialogTitle>
-            <DialogDescription>Perbarui data wali kelas yang dipilih.</DialogDescription>
+            <DialogTitle>Edit Pengajar</DialogTitle>
+            <DialogDescription>Perbarui data pengajar yang dipilih.</DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdate} className="space-y-4 py-2">
             <div className="space-y-2">
               <Label htmlFor="edit-fullName">Nama Lengkap</Label>
               <Input
                 id="edit-fullName"
-                placeholder="Nama wali kelas"
+                placeholder="Nama pengajar"
                 value={editForm.fullName}
                 onChange={(event) => setEditForm((prev) => ({ ...prev, fullName: event.target.value }))}
                 required
@@ -435,11 +435,11 @@ const WaliKelasPage = () => {
       <AlertDialog open={!!deleteTarget} onOpenChange={(open) => !open && setDeleteTarget(null)}>
         <AlertDialogContent>
           <AlertDialogHeader>
-            <AlertDialogTitle>Hapus Wali Kelas</AlertDialogTitle>
+            <AlertDialogTitle>Hapus Pengajar</AlertDialogTitle>
             <AlertDialogDescription>
-              Wali kelas{" "}
+              Pengajar{" "}
               <span className="font-semibold text-foreground">{deleteTarget?.fullName}</span> akan dihapus. Kelas
-              yang terhubung akan menjadi tanpa wali kelas.
+              yang terhubung akan menjadi tanpa pengajar.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>

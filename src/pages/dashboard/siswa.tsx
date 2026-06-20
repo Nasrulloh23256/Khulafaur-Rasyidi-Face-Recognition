@@ -357,7 +357,7 @@ const Siswa = () => {
   };
 
   return (
-    <DashboardLayout title="Manajemen Siswa" subtitle="Kelola data siswa TK Khulafaur Arrasyidin">
+    <DashboardLayout title="Manajemen Siswa" subtitle="Kelola data siswa bimbel">
       <div className="space-y-6">
         {/* Header Actions */}
         <div className="flex flex-col lg:flex-row gap-4 justify-between">

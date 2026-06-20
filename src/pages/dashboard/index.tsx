@@ -26,13 +26,13 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
-const logo = "/logo.png";
+import BrandMark from "@/components/BrandMark";
 
 const menuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard", active: true },
   { icon: BookOpen, label: "Kelas", path: "/dashboard/kelas" },
   { icon: GraduationCap, label: "Siswa", path: "/dashboard/siswa" },
-  { icon: Users, label: "Wali Kelas", path: "/dashboard/wali-kelas" },
+  { icon: Users, label: "Pengajar", path: "/dashboard/wali-kelas" },
   { icon: Camera, label: "Kehadiran", path: "/dashboard/kehadiran" },
   { icon: FileText, label: "Laporan", path: "/dashboard/laporan" },
   { icon: ClipboardCheck, label: "Rekap Absensi", path: "/dashboard/rekap" },
@@ -75,7 +75,7 @@ const initialStatsData: StatItem[] = [
     color: "primary"
   },
   { 
-    title: "Wali Kelas", 
+    title: "Pengajar", 
     value: "0", 
     change: "0", 
     trend: "neutral",
@@ -143,7 +143,7 @@ const Dashboard = () => {
           color: "primary",
         },
         {
-          title: "Wali Kelas",
+          title: "Pengajar",
           value: String(data?.stats?.teachers?.total ?? 0),
           change: data?.stats?.teachers?.change ?? "0",
           trend: data?.stats?.teachers?.trend ?? "neutral",
@@ -208,13 +208,13 @@ const Dashboard = () => {
       >
         {/* Logo Section */}
         <div className="p-4 flex items-center gap-3 border-b border-sidebar-border">
-          <img src={logo} alt="Logo" className="w-12 h-12 object-contain flex-shrink-0" />
+          <BrandMark className="h-12 w-12 flex-shrink-0" textClassName="text-xl" />
           {!sidebarCollapsed && (
             <div className="overflow-hidden">
               <h2 className="font-bold text-sidebar-foreground text-sm leading-tight">
-                TK Khulafaur Arrasyidin
+                {"\u03A9hm Study Club"}
               </h2>
-              <p className="text-xs text-sidebar-foreground/70">Sistem Absensi</p>
+              <p className="text-xs text-sidebar-foreground/70">Absensi Bimbel</p>
             </div>
           )}
         </div>
@@ -285,7 +285,7 @@ const Dashboard = () => {
               </button>
               <div>
                 <h1 className="text-xl font-bold text-foreground">Dashboard</h1>
-                <p className="text-sm text-muted-foreground">Selamat datang di sistem absensi</p>
+                <p className="text-sm text-muted-foreground">Selamat datang di portal absensi bimbel</p>
               </div>
             </div>
 

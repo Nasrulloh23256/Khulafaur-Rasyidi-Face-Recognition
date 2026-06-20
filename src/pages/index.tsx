@@ -5,12 +5,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
+import BrandMark from "@/components/BrandMark";
 import { motion, type Variants } from "framer-motion";
-import ShinyText from "@/components/ShinyText";
-import MagicBentoCard from "@/components/MagicBentoCard";
 import {
   ArrowRight,
   BarChart3,
+  CalendarCheck,
   Camera,
   CheckCircle2,
   ClipboardCheck,
@@ -20,102 +20,55 @@ import {
   Phone,
   Shield,
   Sparkles,
-  UserPlus,
+  UserCheck,
   Users,
-  Zap,
 } from "lucide-react";
+
+const brandName = "\u03A9hm Study Club";
 
 const features = [
   {
     icon: Camera,
-    title: "Face Recognition Presisi",
-    description: "Deteksi wajah cepat dengan kualitas gambar yang stabil untuk absensi akurat setiap hari.",
+    title: "Absensi Wajah",
+    description: "Pencatatan hadir siswa lebih cepat dengan verifikasi wajah di dashboard.",
   },
   {
     icon: Users,
-    title: "Manajemen Kelas dan Siswa",
-    description: "Kelola data siswa, wali kelas, dan pembagian kelas secara terstruktur di satu tempat.",
+    title: "Data Terpusat",
+    description: "Siswa, kelas, dan pengajar tersusun rapi tanpa membuka informasi internal bimbel.",
   },
   {
     icon: ClipboardCheck,
-    title: "Absensi Otomatis",
-    description: "Siswa datang, kamera mendeteksi, status hadir tercatat otomatis tanpa antrian panjang.",
+    title: "Rekap Siap Pakai",
+    description: "Ringkasan hadir, izin, sakit, dan alfa tersedia untuk kebutuhan operasional.",
   },
   {
-    icon: BarChart3,
-    title: "Laporan Real-time",
-    description: "Rekap harian, bulanan, hingga semester siap diunduh dengan tampilan yang rapi.",
+    icon: Shield,
+    title: "Akses Terbatas",
+    description: "Guru hanya masuk ke area kerja absensi sesuai akun dan kebutuhan kelas.",
   },
 ];
 
 const stats = [
-  { value: "99%", label: "Akurasi Deteksi" },
-  { value: "1-2s", label: "Waktu Verifikasi" },
-  { value: "24/7", label: "Sistem Aktif" },
-  { value: "100%", label: "Data Aman" },
+  { value: "500+", label: "Siswa Terpantau" },
+  { value: "15+", label: "Pengajar Aktif" },
+  { value: "98%", label: "Kepuasan Admin" },
 ];
 
-const steps = [
-  {
-    icon: UserPlus,
-    title: "Daftarkan Guru",
-    description: "Buat akun guru dan lengkapi informasi dasar kelas.",
-  },
-  {
-    icon: Camera,
-    title: "Enroll Wajah",
-    description: "Rekam beberapa sampel wajah siswa agar terdeteksi stabil.",
-  },
-  {
-    icon: ClipboardCheck,
-    title: "Scan Otomatis",
-    description: "Siswa hadir cukup menghadap kamera untuk tercatat.",
-  },
-  {
-    icon: BarChart3,
-    title: "Unduh Laporan",
-    description: "Rekap kehadiran langsung tersedia dalam format yang rapi.",
-  },
+const privacyNotes = [
+  "Guru fokus pada absensi dan kelas yang ditugaskan.",
+  "Menu publik fokus pada absensi dan login.",
+  "Admin tetap dapat mengelola data dari dashboard utama.",
 ];
-
-const trustItems = [
-  {
-    icon: Shield,
-    title: "Keamanan Data",
-    description: "Data tersimpan rapi dan hanya dapat diakses oleh admin yang berwenang.",
-  },
-  {
-    icon: Clock,
-    title: "Rekap Harian Otomatis",
-    description: "Setiap absensi langsung masuk laporan tanpa input ulang.",
-  },
-  {
-    icon: Zap,
-    title: "Cepat dan Ringan",
-    description: "Antarmuka ringan untuk perangkat sekolah dengan respon cepat.",
-  },
-];
-
-const logo = "/Rasyidin%20Logo.jpeg";
 
 const fadeUp: Variants = {
   hidden: { opacity: 0, y: 24 },
   visible: { opacity: 1, y: 0, transition: { duration: 0.6, ease: "easeOut" } },
 };
 
-const fadeIn: Variants = {
-  hidden: { opacity: 0 },
-  visible: { opacity: 1, transition: { duration: 0.6 } },
-};
-
 const stagger: Variants = {
   hidden: {},
   visible: { transition: { staggerChildren: 0.12 } },
-};
-
-const slowStagger: Variants = {
-  hidden: {},
-  visible: { transition: { staggerChildren: 0.08 } },
 };
 
 const Index = () => {
@@ -206,53 +159,54 @@ const Index = () => {
   };
 
   return (
-    <div className="min-h-screen bg-background">
-      <header className="fixed top-0 left-0 right-0 z-50 glass-effect">
+    <div className="min-h-screen overflow-hidden bg-background text-foreground">
+      <header className="fixed left-0 right-0 top-0 z-50 border-b border-border/70 bg-background/90 backdrop-blur-xl">
         <div className="container mx-auto px-4 py-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <img src={logo} alt="Logo TK Khulafaur Arrasyidin" className="h-12 w-12 object-contain" />
+          <div className="flex items-center justify-between gap-4">
+            <Link href="/" className="flex items-center gap-3">
+              <BrandMark className="h-12 w-12" textClassName="text-xl" />
               <div>
-                <h1 className="font-bold text-lg text-foreground">TK Khulafaur Arrasyidin</h1>
-                <p className="text-xs text-muted-foreground">Sistem Absensi Digital</p>
+                <h1 className="text-lg font-extrabold leading-tight text-foreground">{brandName}</h1>
+                <p className="text-xs font-medium text-muted-foreground">Portal Absensi Bimbel</p>
               </div>
-            </div>
-            <nav className="hidden md:flex items-center gap-6">
-              <a href="#features" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                Fitur
+            </Link>
+
+            <nav className="hidden items-center gap-7 md:flex">
+              <a href="#beranda" className="text-sm font-semibold text-muted-foreground transition-colors hover:text-primary">
+                Beranda
               </a>
-              <a href="#workflow" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
-                Alur
+              <a href="#tentang" className="text-sm font-semibold text-muted-foreground transition-colors hover:text-primary">
+                Tentang
               </a>
-              <a href="#daftar-guru" className="text-sm font-medium text-muted-foreground hover:text-primary transition-colors">
+              <a href="#absensi" className="text-sm font-semibold text-muted-foreground transition-colors hover:text-primary">
+                Absensi
+              </a>
+              <a href="#daftar-guru" className="text-sm font-semibold text-muted-foreground transition-colors hover:text-primary">
                 Daftar Guru
               </a>
-              <Button asChild variant="gradient" size="default">
-                <Link href="/login">Login</Link>
+              <Button asChild variant="gradient">
+                <Link href="/login">Masuk</Link>
               </Button>
             </nav>
+
             <Button asChild variant="gradient" size="sm" className="md:hidden">
-              <Link href="/login">Login</Link>
+              <Link href="/login">Masuk</Link>
             </Button>
           </div>
         </div>
       </header>
 
       <main>
-        <section className="relative pt-36 pb-24 overflow-hidden">
-          <div className="absolute inset-0">
-            <div className="absolute -top-28 -right-20 h-80 w-80 rounded-full bg-primary/20 blur-3xl" />
-            <div className="absolute bottom-0 left-0 h-96 w-96 rounded-full bg-secondary/20 blur-3xl" />
-            <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(45,212,191,0.16),rgba(255,255,255,0))]" />
-          </div>
-          <div className="container mx-auto px-4 relative z-10">
-            <div className="grid lg:grid-cols-[1.15fr_0.85fr] gap-12 items-center">
+        <section id="beranda" className="relative overflow-hidden pt-32">
+          <div className="absolute inset-0 gradient-hero" />
+          <div className="container relative mx-auto px-4 pb-16 lg:pb-20">
+            <div className="grid min-h-[calc(100vh-8rem)] items-center gap-12 lg:grid-cols-[0.92fr_1.08fr]">
               <motion.div variants={stagger} initial="hidden" animate="visible">
                 <motion.div
-                  className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-primary/10 text-primary text-sm font-medium mb-6"
+                  className="mb-6 inline-flex items-center gap-2 rounded-lg bg-white px-4 py-2 text-sm font-bold text-primary shadow-card"
                   variants={fadeUp}
                 >
-                  <Sparkles className="w-4 h-4" />
+                  <Sparkles className="h-4 w-4" />
                   <ShinyText
                     text="Absensi digital berbasis face recognition"
                     className="text-sm font-medium"
@@ -262,125 +216,165 @@ const Index = () => {
                     speed={2.4}
                   />
                 </motion.div>
-                <motion.h1
-                  className="text-4xl md:text-6xl font-extrabold text-foreground leading-tight"
+
+                <motion.h2
+                  className="max-w-2xl text-4xl font-extrabold leading-tight text-foreground md:text-5xl lg:text-6xl"
                   variants={fadeUp}
                 >
-                  Absensi{" "}
-                  <ShinyText
-                    text="Digital"
-                    className="inline-block"
-                    speed={2.6}
-                  />{" "}
-                  yang rapi dan cepat untuk TK Khulafaur Arrasyidin
-                </motion.h1>
-                <motion.p className="mt-6 text-lg text-muted-foreground max-w-2xl" variants={fadeUp}>
-                  Sistem absensi modern yang fokus pada kecepatan, akurasi, dan kemudahan. Guru tinggal arahkan kamera,
-                  laporan langsung tersusun otomatis.
+                  Absensi Bimbel <span className="relative inline-block text-primary">Ceria</span> & Cerdas
+                </motion.h2>
+
+                <motion.p className="mt-6 max-w-xl text-base leading-8 text-muted-foreground md:text-lg" variants={fadeUp}>
+                  Sistem khusus absensi {brandName} untuk mencatat kehadiran siswa, memantau kelas,
+                  dan menjaga akses pengajar tetap fokus pada operasional harian.
                 </motion.p>
-                <motion.div className="mt-8 flex flex-col sm:flex-row items-center gap-4" variants={fadeUp}>
+
+                <motion.div className="mt-9 flex flex-col gap-4 sm:flex-row" variants={fadeUp}>
                   <Button asChild variant="hero" size="xl" className="group">
                     <Link href="/login">
-                      Mulai Sekarang
-                      <ArrowRight className="w-5 h-5 group-hover:translate-x-1 transition-transform" />
+                      Masuk Dashboard
+                      <ArrowRight className="h-5 w-5 transition-transform group-hover:translate-x-1" />
                     </Link>
                   </Button>
-                  <a href="#daftar-guru">
-                    <Button variant="outline" size="xl">
-                      Daftar Guru
-                    </Button>
-                  </a>
+                  <Button asChild variant="outline" size="xl" className="bg-white/70">
+                    <a href="#daftar-guru">Daftar Guru</a>
+                  </Button>
+                </motion.div>
+
+                <motion.div className="mt-12 grid max-w-lg grid-cols-3 gap-5" variants={stagger}>
+                  {stats.map((stat) => (
+                    <motion.div key={stat.label} variants={fadeUp}>
+                      <p className="text-2xl font-extrabold text-primary md:text-3xl">{stat.value}</p>
+                      <p className="mt-1 text-xs font-semibold text-muted-foreground md:text-sm">{stat.label}</p>
+                    </motion.div>
+                  ))}
                 </motion.div>
               </motion.div>
 
-              <motion.div className="relative" variants={fadeIn} initial="hidden" animate="visible">
-                <div className="absolute -inset-6 rounded-[32px] bg-[radial-gradient(circle_at_top,rgba(45,212,191,0.35),rgba(255,255,255,0))] blur-2xl" />
-                <div className="relative rounded-3xl border border-white/60 bg-white/85 p-6 shadow-soft backdrop-blur">
-                  <div className="flex items-center justify-between text-xs uppercase tracking-widest text-muted-foreground">
-                    <span>Live Face Scan</span>
-                    <span className="rounded-full bg-success/10 px-3 py-1 text-xs font-semibold text-success">Aktif</span>
-                  </div>
-                  <div className="mt-6 grid gap-4">
-                    <MagicBentoCard className="rounded-2xl bg-muted/60 p-4">
-                      <div className="flex items-center gap-3">
-                        <div className="h-12 w-12 rounded-2xl gradient-primary flex items-center justify-center">
-                          <Camera className="h-6 w-6 text-primary-foreground" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">Deteksi wajah berjalan</p>
-                          <p className="text-xs text-muted-foreground">Kelas TK A1 - 24 siswa terdaftar</p>
-                        </div>
+              <motion.div
+                className="relative min-h-[420px]"
+                initial={{ opacity: 0, scale: 0.96 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ duration: 0.7, ease: "easeOut" }}
+              >
+                <div className="absolute inset-x-6 top-6 h-[380px] rounded-[42px] bg-primary" />
+                <div className="absolute right-0 top-2 hidden h-32 w-32 rounded-lg bg-accent/80 lg:block" />
+                <div className="absolute bottom-2 left-4 hidden h-24 w-24 rounded-lg bg-secondary/30 lg:block" />
+
+                <div className="relative mx-auto flex min-h-[420px] max-w-xl items-center justify-center">
+                  <div className="w-full max-w-md rounded-lg bg-white p-5 shadow-2xl">
+                    <div className="mb-5 flex items-center justify-between">
+                      <div>
+                        <p className="text-sm font-bold text-muted-foreground">Absensi Hari Ini</p>
+                        <h3 className="text-2xl font-extrabold text-foreground">Kelas Aktif</h3>
                       </div>
-                    </MagicBentoCard>
-                    <MagicBentoCard className="rounded-2xl border border-border/60 bg-card p-4">
-                      <div className="flex items-center justify-between">
-                        <div>
-                          <p className="text-sm text-muted-foreground">Hadir hari ini</p>
-                          <p className="text-2xl font-bold text-foreground">92%</p>
-                        </div>
-                        <div className="text-right">
-                          <p className="text-xs text-muted-foreground">Jam puncak</p>
-                          <p className="text-sm font-semibold text-foreground">07:10 - 07:30</p>
-                        </div>
+                      <div className="flex h-12 w-12 items-center justify-center rounded-lg bg-primary/10 text-primary">
+                        <CalendarCheck className="h-6 w-6" />
                       </div>
-                      <div className="mt-3 h-2 rounded-full bg-muted">
-                        <div className="h-full w-[92%] rounded-full gradient-primary" />
+                    </div>
+
+                    <div className="space-y-3">
+                      {[
+                        { name: "Alya Putri", time: "15:28", status: "Hadir" },
+                        { name: "Rafi Maulana", time: "15:31", status: "Hadir" },
+                        { name: "Nadira Salsabila", time: "-", status: "Izin" },
+                      ].map((item) => (
+                        <div key={item.name} className="flex items-center justify-between rounded-lg border border-border bg-muted/40 px-4 py-3">
+                          <div className="flex items-center gap-3">
+                            <div className="flex h-10 w-10 items-center justify-center rounded-lg gradient-primary text-sm font-bold text-primary-foreground">
+                              {item.name.charAt(0)}
+                            </div>
+                            <div>
+                              <p className="text-sm font-bold text-foreground">{item.name}</p>
+                              <p className="text-xs font-medium text-muted-foreground">Sesi sore</p>
+                            </div>
+                          </div>
+                          <div className="text-right">
+                            <span className={`rounded-md px-2 py-1 text-xs font-bold ${
+                              item.status === "Hadir" ? "bg-success/10 text-success" : "bg-warning/10 text-warning"
+                            }`}>
+                              {item.status}
+                            </span>
+                            <p className="mt-1 text-xs text-muted-foreground">{item.time}</p>
+                          </div>
+                        </div>
+                      ))}
+                    </div>
+
+                    <div className="mt-5 grid grid-cols-3 gap-3">
+                      <div className="rounded-lg bg-primary/10 p-3 text-center">
+                        <p className="text-xl font-extrabold text-primary">86%</p>
+                        <p className="text-xs font-medium text-muted-foreground">Hadir</p>
                       </div>
-                    </MagicBentoCard>
-                    <MagicBentoCard className="rounded-2xl bg-primary/10 p-4">
-                      <p className="text-xs uppercase tracking-widest text-primary">Notifikasi</p>
-                      <p className="mt-2 text-sm font-semibold text-foreground">
-                        Absensi otomatis tersinkron ke laporan harian.
-                      </p>
-                    </MagicBentoCard>
+                      <div className="rounded-lg bg-accent/40 p-3 text-center">
+                        <p className="text-xl font-extrabold text-accent-foreground">12</p>
+                        <p className="text-xs font-medium text-muted-foreground">Kelas</p>
+                      </div>
+                      <div className="rounded-lg bg-secondary/10 p-3 text-center">
+                        <p className="text-xl font-extrabold text-secondary">3</p>
+                        <p className="text-xs font-medium text-muted-foreground">Izin</p>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </motion.div>
             </div>
-
-            <motion.div
-              className="mt-14 grid grid-cols-2 md:grid-cols-4 gap-6 max-w-4xl"
-              variants={stagger}
-              initial="hidden"
-              animate="visible"
-            >
-              {stats.map((stat) => (
-                <motion.div key={stat.label} variants={fadeUp}>
-                  <MagicBentoCard className="h-full rounded-2xl bg-card/80 border border-border/60 p-5 shadow-card">
-                    <p className="text-2xl font-bold text-foreground">{stat.value}</p>
-                    <p className="text-sm text-muted-foreground mt-1">{stat.label}</p>
-                  </MagicBentoCard>
-                </motion.div>
-              ))}
-            </motion.div>
           </div>
         </section>
 
-        <section id="features" className="py-20 bg-muted/40">
+        <section id="tentang" className="py-20">
+          <div className="container mx-auto px-4">
+            <div className="grid items-start gap-10 lg:grid-cols-[0.9fr_1.1fr]">
+              <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}>
+                <motion.p className="mb-3 text-sm font-extrabold uppercase tracking-[0.18em] text-primary" variants={fadeUp}>
+                  Portal Internal
+                </motion.p>
+                <motion.h2 className="text-3xl font-extrabold leading-tight text-foreground md:text-4xl" variants={fadeUp}>
+                  Absensi bimbel tanpa membuka informasi yang tidak perlu.
+                </motion.h2>
+                <motion.p className="mt-5 text-base leading-8 text-muted-foreground" variants={fadeUp}>
+                  Halaman ini diarahkan sebagai pintu masuk absensi, bukan website profil. Pengajar dapat login,
+                  melakukan absensi, dan mengelola data yang relevan tanpa membuka area internal lain.
+                </motion.p>
+              </motion.div>
+
+              <motion.div
+                className="grid gap-4 md:grid-cols-3"
+                variants={stagger}
+                initial="hidden"
+                whileInView="visible"
+                viewport={{ once: true, amount: 0.2 }}
+              >
+                {privacyNotes.map((item) => (
+                  <motion.div key={item} className="rounded-lg border border-border bg-card p-5 shadow-card" variants={fadeUp}>
+                    <CheckCircle2 className="mb-4 h-6 w-6 text-primary" />
+                    <p className="text-sm font-semibold leading-6 text-foreground">{item}</p>
+                  </motion.div>
+                ))}
+              </motion.div>
+            </div>
+          </div>
+        </section>
+
+        <section id="absensi" className="bg-muted/50 py-20">
           <div className="container mx-auto px-4">
             <motion.div
-              className="text-center max-w-3xl mx-auto"
+              className="mx-auto mb-12 max-w-2xl text-center"
               variants={stagger}
               initial="hidden"
               whileInView="visible"
               viewport={{ once: true, amount: 0.3 }}
             >
-              <motion.h2 className="text-3xl md:text-4xl font-bold text-foreground" variants={fadeUp}>
-                Fitur{" "}
-                <ShinyText
-                  text="Unggulan"
-                  className="inline-block"
-                  speed={3}
-                  delay={0.4}
-                />
+              <motion.h2 className="text-3xl font-extrabold text-foreground md:text-4xl" variants={fadeUp}>
+                Fitur Utama Absensi
               </motion.h2>
               <motion.p className="mt-4 text-muted-foreground" variants={fadeUp}>
-                Semua fitur dirancang untuk mempercepat absensi tanpa kehilangan detail penting.
+                Dibuat untuk kebutuhan harian admin dan pengajar tanpa membuka area internal lain.
               </motion.p>
             </motion.div>
 
             <motion.div
-              className="mt-12 grid md:grid-cols-2 lg:grid-cols-4 gap-6"
+              className="grid gap-5 md:grid-cols-2 lg:grid-cols-4"
               variants={stagger}
               initial="hidden"
               whileInView="visible"
@@ -404,140 +398,76 @@ const Index = () => {
           </div>
         </section>
 
-        <section id="workflow" className="py-20">
+        <section className="py-20">
           <div className="container mx-auto px-4">
-            <div className="grid lg:grid-cols-[1.05fr_0.95fr] gap-12 items-center">
-              <motion.div
-                variants={stagger}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.3 }}
-              >
-                <motion.h2 className="text-3xl md:text-4xl font-bold text-foreground" variants={fadeUp}>
-                  Alur kerja yang{" "}
-                <ShinyText
-                  text="jelas"
-                  className="inline-block"
-                  speed={3.2}
-                  delay={0.6}
-                />{" "}
-                  untuk guru
-                </motion.h2>
-                <motion.p className="mt-4 text-muted-foreground" variants={fadeUp}>
-                  Dari daftar guru sampai laporan hadir, semua langkah dibuat sederhana agar staf sekolah tidak perlu
-                  mengulang proses yang rumit.
-                </motion.p>
-                <motion.div className="mt-10 grid sm:grid-cols-2 gap-6" variants={slowStagger}>
-                  {steps.map((step, index) => (
-                    <motion.div key={step.title} variants={fadeUp}>
-                      <MagicBentoCard className="h-full rounded-2xl border border-border/60 p-5 bg-card">
-                        <div className="flex items-center gap-3">
-                          <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
-                            <step.icon className="w-5 h-5 text-primary" />
-                          </div>
-                          <span className="text-xs font-semibold uppercase tracking-widest text-muted-foreground">
-                            Langkah {index + 1}
-                          </span>
-                        </div>
-                        <h3 className="mt-4 text-base font-semibold text-foreground">{step.title}</h3>
-                        <p className="mt-2 text-sm text-muted-foreground">{step.description}</p>
-                      </MagicBentoCard>
-                    </motion.div>
+            <div className="grid items-center gap-10 rounded-lg border border-border bg-card p-6 shadow-soft lg:grid-cols-[1fr_0.9fr] lg:p-10">
+              <div>
+                <p className="mb-3 text-sm font-extrabold uppercase tracking-[0.18em] text-primary">Alur Kerja</p>
+                <h2 className="text-3xl font-extrabold text-foreground md:text-4xl">Masuk, pilih kelas, catat kehadiran.</h2>
+                <div className="mt-8 grid gap-4 sm:grid-cols-3">
+                  {[
+                    { icon: UserCheck, title: "Login Guru", text: "Gunakan akun yang sudah terdaftar." },
+                    { icon: Clock, title: "Sesi Aktif", text: "Pilih kelas dan waktu absensi." },
+                    { icon: BarChart3, title: "Rekap", text: "Admin melihat ringkasan kehadiran." },
+                  ].map((item) => (
+                    <div key={item.title} className="rounded-lg bg-muted/60 p-4">
+                      <item.icon className="mb-4 h-6 w-6 text-primary" />
+                      <h3 className="font-bold text-foreground">{item.title}</h3>
+                      <p className="mt-2 text-sm leading-6 text-muted-foreground">{item.text}</p>
+                    </div>
                   ))}
-                </motion.div>
-              </motion.div>
-
-              <motion.div
-                variants={fadeIn}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.3 }}
-              >
-                <MagicBentoCard className="rounded-3xl border border-border/60 bg-gradient-to-br from-white via-white to-muted/60 p-8 shadow-soft">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-2xl gradient-primary flex items-center justify-center">
-                      <Shield className="w-6 h-6 text-primary-foreground" />
-                    </div>
-                    <div>
-                      <h3 className="text-lg font-bold text-foreground">Kepercayaan Sekolah</h3>
-                      <p className="text-sm text-muted-foreground">Data hadir otomatis, laporan selalu siap.</p>
-                    </div>
-                  </div>
-                  <div className="mt-6 space-y-4">
-                    {trustItems.map((item) => (
-                      <div key={item.title} className="flex items-start gap-3">
-                        <div className="w-9 h-9 rounded-xl bg-muted flex items-center justify-center">
-                          <item.icon className="w-4 h-4 text-primary" />
-                        </div>
-                        <div>
-                          <p className="text-sm font-semibold text-foreground">{item.title}</p>
-                          <p className="text-sm text-muted-foreground">{item.description}</p>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                  <div className="mt-8 rounded-2xl bg-primary/10 p-4">
-                    <p className="text-sm font-semibold text-foreground">Monitoring Harian</p>
-                    <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
-                      <span>Siswa terdaftar</span>
-                      <span className="font-semibold text-foreground">240</span>
-                    </div>
-                    <div className="mt-2 flex items-center justify-between text-sm text-muted-foreground">
-                      <span>Hadir hari ini</span>
-                      <span className="font-semibold text-foreground">219</span>
-                    </div>
-                  </div>
-                </MagicBentoCard>
-              </motion.div>
+                </div>
+              </div>
+              <div className="rounded-lg bg-primary p-6 text-primary-foreground">
+                <Shield className="mb-6 h-10 w-10 opacity-90" />
+                <h3 className="text-2xl font-extrabold">Akses dibuat ringkas untuk pengajar.</h3>
+                <p className="mt-4 leading-7 text-primary-foreground/80">
+                  Dashboard guru diarahkan ke kehadiran, kelas, siswa, dan enroll wajah. Area admin tetap terpisah
+                  untuk pengelolaan data lengkap.
+                </p>
+                <Button asChild variant="accent" size="lg" className="mt-7">
+                  <Link href="/login">
+                    Login Absensi
+                    <ArrowRight className="h-4 w-4" />
+                  </Link>
+                </Button>
+              </div>
             </div>
           </div>
         </section>
 
-        <section id="daftar-guru" className="py-20 bg-muted/40">
+        <section id="daftar-guru" className="bg-muted/45 py-20">
           <div className="container mx-auto px-4">
-            <div className="grid lg:grid-cols-[1.1fr_0.9fr] gap-12 items-center">
-              <motion.div
-                variants={stagger}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.3 }}
-              >
-                <motion.h2 className="text-3xl md:text-4xl font-bold text-foreground" variants={fadeUp}>
-                  Daftar akun{" "}
-                <ShinyText
-                  text="guru"
-                  className="inline-block"
-                  speed={3}
-                  delay={0.3}
-                />{" "}
-                  dalam hitungan menit
-                </motion.h2>
-                <motion.p className="mt-4 text-muted-foreground" variants={fadeUp}>
-                  Setelah akun aktif, guru bisa langsung mengelola kelas, siswa, serta absensi otomatis dari dashboard.
+            <div className="grid items-center gap-10 lg:grid-cols-[1fr_0.95fr]">
+              <motion.div variants={stagger} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}>
+                <motion.p className="mb-3 text-sm font-extrabold uppercase tracking-[0.18em] text-primary" variants={fadeUp}>
+                  Akses Pengajar
                 </motion.p>
-                <motion.div className="mt-8 space-y-4" variants={slowStagger}>
+                <motion.h2 className="text-3xl font-extrabold leading-tight text-foreground md:text-4xl" variants={fadeUp}>
+                  Daftar akun guru baru tetap tersedia.
+                </motion.h2>
+                <motion.p className="mt-5 max-w-xl text-base leading-8 text-muted-foreground" variants={fadeUp}>
+                  Gunakan form ini untuk membuat akun guru. Setelah aktif, guru bisa masuk ke dashboard absensi
+                  tanpa melihat informasi internal lain.
+                </motion.p>
+                <motion.div className="mt-7 space-y-4" variants={stagger}>
                   {[
-                    "Akses dashboard guru dan kelas secara real-time",
-                    "Enroll wajah siswa langsung dari kamera",
-                    "Riwayat absensi tersimpan otomatis",
+                    "Akun digunakan untuk login absensi.",
+                    "Data guru tersimpan di sistem yang sama.",
+                    "Akses diarahkan ke halaman kerja yang relevan.",
                   ].map((item) => (
                     <motion.div key={item} className="flex items-center gap-3" variants={fadeUp}>
-                      <div className="w-6 h-6 rounded-full gradient-primary flex items-center justify-center">
-                        <CheckCircle2 className="w-4 h-4 text-primary-foreground" />
+                      <div className="flex h-7 w-7 flex-shrink-0 items-center justify-center rounded-lg gradient-primary">
+                        <CheckCircle2 className="h-4 w-4 text-primary-foreground" />
                       </div>
-                      <span className="text-foreground">{item}</span>
+                      <span className="font-semibold text-foreground">{item}</span>
                     </motion.div>
                   ))}
                 </motion.div>
               </motion.div>
 
-              <motion.div
-                variants={fadeIn}
-                initial="hidden"
-                whileInView="visible"
-                viewport={{ once: true, amount: 0.3 }}
-              >
-                <Card className="border-0 shadow-soft bg-card/95">
+              <motion.div variants={fadeUp} initial="hidden" whileInView="visible" viewport={{ once: true, amount: 0.3 }}>
+                <Card className="border-0 bg-card/95 shadow-soft">
                   <CardHeader>
                     <CardTitle>Buat Akun Guru</CardTitle>
                     <CardDescription>Isi data berikut untuk mendaftar.</CardDescription>
@@ -559,7 +489,7 @@ const Index = () => {
                       <div className="space-y-2">
                         <Label htmlFor="teacher-email">Email</Label>
                         <div className="relative">
-                          <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Mail className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
                             id="teacher-email"
                             type="email"
@@ -576,7 +506,7 @@ const Index = () => {
                       <div className="space-y-2">
                         <Label htmlFor="teacher-phone">Nomor HP (opsional)</Label>
                         <div className="relative">
-                          <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Phone className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
                             id="teacher-phone"
                             placeholder="08xxxxxxxxxx"
@@ -591,7 +521,7 @@ const Index = () => {
                       <div className="space-y-2">
                         <Label htmlFor="teacher-password">Password</Label>
                         <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
                             id="teacher-password"
                             type="password"
@@ -608,7 +538,7 @@ const Index = () => {
                       <div className="space-y-2">
                         <Label htmlFor="teacher-confirm">Konfirmasi Password</Label>
                         <div className="relative">
-                          <Lock className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+                          <Lock className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
                           <Input
                             id="teacher-confirm"
                             type="password"
@@ -625,9 +555,9 @@ const Index = () => {
                       <Button type="submit" variant="gradient" className="w-full" disabled={isRegistering}>
                         {isRegistering ? "Mendaftarkan..." : "Daftar Sekarang"}
                       </Button>
-                      <p className="text-xs text-muted-foreground text-center">
+                      <p className="text-center text-xs text-muted-foreground">
                         Sudah punya akun?{" "}
-                        <Link href="/login" className="text-primary font-medium hover:underline">
+                        <Link href="/login" className="font-semibold text-primary hover:underline">
                           Login di sini
                         </Link>
                       </p>
@@ -638,55 +568,24 @@ const Index = () => {
             </div>
           </div>
         </section>
-
-        <section className="py-20">
-          <div className="container mx-auto px-4">
-            <motion.div
-              className="rounded-3xl p-12 text-center relative overflow-hidden shadow-soft"
-              style={{
-                background:
-                  "linear-gradient(135deg, #0ac4da 0%, #19d0b9 50%, #18d3a6 100%)",
-              }}
-              variants={fadeUp}
-              initial="hidden"
-              whileInView="visible"
-              viewport={{ once: true, amount: 0.3 }}
-            >
-              <div className="absolute inset-0 bg-[radial-gradient(circle_at_top,rgba(255,255,255,0.35),rgba(255,255,255,0))]" />
-              <div className="relative z-10">
-                <Sparkles className="w-16 h-16 text-primary-foreground/80 mx-auto mb-6" />
-                <h2 className="text-3xl md:text-4xl font-bold text-primary-foreground mb-4">
-                  Siap menggunakan sistem absensi modern?
-                </h2>
-                <p className="text-primary-foreground/80 mb-8 max-w-2xl mx-auto">
-                  Login sekarang untuk mengakses dashboard dan mulai mengelola absensi siswa dengan lebih efisien.
-                </p>
-                <Button asChild variant="accent" size="xl" className="shadow-lg">
-                  <Link href="/login">
-                    Login ke Dashboard
-                    <ArrowRight className="w-5 h-5" />
-                  </Link>
-                </Button>
-              </div>
-            </motion.div>
-          </div>
-        </section>
       </main>
 
-      <footer className="py-10 border-t border-border">
-        <div className="container mx-auto px-4">
-          <div className="flex flex-col md:flex-row items-center justify-between gap-4">
-            <div className="flex items-center gap-3">
-              <img src={logo} alt="Logo" className="h-10 w-10 object-contain" />
-              <span className="text-sm text-muted-foreground">
-                Ac 2026 TK Khulafaur Arrasyidin. All rights reserved.
-              </span>
-            </div>
-            <div className="flex items-center gap-6 text-sm text-muted-foreground">
-              <a href="#features" className="hover:text-primary transition-colors">Fitur</a>
-              <a href="#workflow" className="hover:text-primary transition-colors">Alur</a>
-              <a href="#daftar-guru" className="hover:text-primary transition-colors">Daftar Guru</a>
-            </div>
+      <footer className="border-t border-border bg-background py-8">
+        <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 md:flex-row">
+          <div className="flex items-center gap-3">
+            <BrandMark className="h-10 w-10 flex-shrink-0" textClassName="text-lg" />
+            <span className="text-sm font-medium text-muted-foreground">&copy; 2026 {brandName}. Portal Absensi Bimbel.</span>
+          </div>
+          <div className="flex items-center gap-6 text-sm font-semibold text-muted-foreground">
+            <a href="#beranda" className="transition-colors hover:text-primary">
+              Beranda
+            </a>
+            <a href="#absensi" className="transition-colors hover:text-primary">
+              Absensi
+            </a>
+            <Link href="/login" className="transition-colors hover:text-primary">
+              Admin
+            </Link>
           </div>
         </div>
       </footer>

@@ -392,13 +392,13 @@ const Kelas = () => {
   };
 
   return (
-    <DashboardLayout title="Manajemen Kelas" subtitle="Kelola data kelas dan wali kelas">
+    <DashboardLayout title="Manajemen Kelas" subtitle="Kelola data kelas dan pengajar">
       <div className="space-y-6">
         <div className="flex flex-col sm:flex-row gap-4 justify-between">
           <div className="relative flex-1 max-w-md">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
             <Input
-              placeholder="Cari kelas atau wali kelas..."
+              placeholder="Cari kelas atau pengajar..."
               className="pl-10"
               value={searchQuery}
               onChange={(event) => setSearchQuery(event.target.value)}
@@ -470,19 +470,19 @@ const Kelas = () => {
                 </Select>
               </div>
                 <div className="space-y-2">
-                  <Label>Wali Kelas (opsional)</Label>
+                  <Label>Pengajar (opsional)</Label>
                   <Select
                     value={form.homeroomTeacherId}
                     onValueChange={(value) => setForm((prev) => ({ ...prev, homeroomTeacherId: value }))}
                   >
                   <SelectTrigger>
-                    <SelectValue placeholder="Pilih wali kelas" />
+                    <SelectValue placeholder="Pilih pengajar" />
                   </SelectTrigger>
                   <SelectContent>
                     <SelectItem value="none">Belum ditentukan</SelectItem>
                     {sortedTeachers.length === 0 ? (
                       <SelectItem value="empty" disabled>
-                        Belum ada wali kelas
+                        Belum ada pengajar
                       </SelectItem>
                     ) : (
                       sortedTeachers.map((teacher) => (
@@ -553,7 +553,7 @@ const Kelas = () => {
                 <TableRow>
                   <TableHead>No</TableHead>
                   <TableHead>Nama Kelas</TableHead>
-                  <TableHead>Wali Kelas</TableHead>
+                  <TableHead>Pengajar</TableHead>
                   <TableHead>Tahun Ajaran</TableHead>
                   <TableHead>Semester</TableHead>
                   <TableHead className="text-center">Total Siswa</TableHead>
@@ -624,7 +624,7 @@ const Kelas = () => {
           <DialogHeader>
             <DialogTitle>Edit Kelas</DialogTitle>
             <DialogDescription>
-              Atur wali kelas dan tambahkan siswa baru untuk {editTarget?.name ?? "kelas ini"}.
+              Atur pengajar dan tambahkan siswa baru untuk {editTarget?.name ?? "kelas ini"}.
             </DialogDescription>
           </DialogHeader>
           <form onSubmit={handleUpdate} className="space-y-4 py-4">
@@ -633,19 +633,19 @@ const Kelas = () => {
               <Input value={editTarget?.name ?? ""} disabled />
             </div>
             <div className="space-y-2">
-              <Label>Wali Kelas</Label>
+              <Label>Pengajar</Label>
               <Select
                 value={editForm.homeroomTeacherId}
                 onValueChange={(value) => setEditForm((prev) => ({ ...prev, homeroomTeacherId: value }))}
               >
                 <SelectTrigger>
-                  <SelectValue placeholder="Pilih wali kelas" />
+                  <SelectValue placeholder="Pilih pengajar" />
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="none">Belum ditentukan</SelectItem>
                   {sortedTeachers.length === 0 ? (
                     <SelectItem value="empty" disabled>
-                      Belum ada wali kelas
+                      Belum ada pengajar
                     </SelectItem>
                   ) : (
                     sortedTeachers.map((teacher) => (

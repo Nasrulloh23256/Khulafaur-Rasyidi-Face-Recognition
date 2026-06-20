@@ -16,20 +16,22 @@ import {
   Menu,
   Bell,
   Search,
-  Camera
+  Camera,
+  UserCheck
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-const logo = "/logo.png";
+import BrandMark from "@/components/BrandMark";
 
 const adminMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: BookOpen, label: "Kelas", path: "/dashboard/kelas" },
   { icon: GraduationCap, label: "Siswa", path: "/dashboard/siswa" },
   { icon: Camera, label: "Enroll Wajah", path: "/dashboard/enroll-wajah" },
-  { icon: Users, label: "Wali Kelas", path: "/dashboard/wali-kelas" },
+  { icon: Users, label: "Pengajar", path: "/dashboard/wali-kelas" },
+  { icon: UserCheck, label: "Absensi Pengajar", path: "/dashboard/absensi-pengajar" },
   { icon: Camera, label: "Kehadiran", path: "/dashboard/kehadiran" },
   { icon: Camera, label: "Kehadiran Pengajar", path: "/dashboard/kehadiran-pengajar" },
   { icon: FileText, label: "Laporan", path: "/dashboard/laporan" },
@@ -41,12 +43,12 @@ const adminMenuItems = [
 ];
 
 const teacherMenuItems = [
+  { icon: UserCheck, label: "Absensi Saya", path: "/dashboard/absensi-pengajar" },
   { icon: Camera, label: "Kehadiran", path: "/dashboard/kehadiran" },
   { icon: Camera, label: "Kehadiran Pengajar", path: "/dashboard/kehadiran-pengajar" },
   { icon: BookOpen, label: "Kelas", path: "/dashboard/kelas" },
   { icon: GraduationCap, label: "Siswa", path: "/dashboard/siswa" },
   { icon: Camera, label: "Enroll Wajah", path: "/dashboard/enroll-wajah" },
-  { icon: Users, label: "Wali Kelas", path: "/dashboard/wali-kelas" },
 ];
 
 type AuthUser = {
@@ -140,13 +142,13 @@ const DashboardLayout = ({ children, title, subtitle }: DashboardLayoutProps) =>
       >
         {/* Logo Section */}
         <div className="p-4 flex items-center gap-3 border-b border-sidebar-border">
-          <img src={logo} alt="Logo" className="w-12 h-12 object-contain flex-shrink-0" />
+          <BrandMark className="h-12 w-12 flex-shrink-0" textClassName="text-xl" />
           {!sidebarCollapsed && (
             <div className="overflow-hidden">
               <h2 className="font-bold text-sidebar-foreground text-sm leading-tight">
-                TK Khulafaur Arrasyidin
+                {"\u03A9hm Study Club"}
               </h2>
-              <p className="text-xs text-sidebar-foreground/70">Sistem Absensi</p>
+              <p className="text-xs text-sidebar-foreground/70">Absensi Bimbel</p>
             </div>
           )}
         </div>
