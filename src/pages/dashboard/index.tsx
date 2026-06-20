@@ -37,7 +37,6 @@ const menuItems = [
   { icon: FileText, label: "Laporan", path: "/dashboard/laporan" },
   { icon: ClipboardCheck, label: "Rekap Absensi", path: "/dashboard/rekap" },
   { icon: Calendar, label: "Semester", path: "/dashboard/semester" },
-  { icon: Settings, label: "Tahun Ajaran", path: "/dashboard/tahun-ajaran" },
   { icon: UserCog, label: "Super Admin", path: "/dashboard/admin" },
 ];
 

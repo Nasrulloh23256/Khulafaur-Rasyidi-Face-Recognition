@@ -403,24 +403,6 @@ const RekapAbsensi = () => {
                   )}
                 </SelectContent>
               </Select>
-              <Select value={selectedYearId} onValueChange={setSelectedYearId}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Tahun Ajaran" />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.length === 0 ? (
-                    <SelectItem value="empty" disabled>
-                      Belum ada tahun ajaran
-                    </SelectItem>
-                  ) : (
-                    years.map((year) => (
-                      <SelectItem key={year.id} value={year.id}>
-                        {year.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
               <Select value={selectedSemesterId} onValueChange={setSelectedSemesterId}>
                 <SelectTrigger className="w-[140px]">
                   <SelectValue placeholder="Semester" />

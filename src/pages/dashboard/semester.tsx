@@ -36,6 +36,7 @@ import { useToast } from "@/hooks/use-toast";
 type AcademicYear = {
   id: string;
   name: string;
+  isActive?: boolean;
 };
 
 type Semester = {
@@ -83,7 +84,10 @@ const SemesterPage = () => {
       if (yearRes.ok) {
         setYears(yearData);
         if (!form.academicYearId && yearData.length > 0) {
-          setForm((prev) => ({ ...prev, academicYearId: yearData[0].id }));
+          const activeYear = yearData.find((year: any) => year.isActive) ?? yearData[0];
+          if (activeYear) {
+            setForm((prev) => ({ ...prev, academicYearId: activeYear.id }));
+          }
         }
       }
     } catch (error) {
@@ -183,24 +187,6 @@ const SemesterPage = () => {
                 <DialogDescription>Lengkapi data semester baru.</DialogDescription>
               </DialogHeader>
               <form onSubmit={handleSubmit} className="space-y-4 py-2">
-                <div className="space-y-2">
-                  <Label>Tahun Ajaran</Label>
-                  <Select
-                    value={form.academicYearId}
-                    onValueChange={(value) => setForm((prev) => ({ ...prev, academicYearId: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih tahun ajaran" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {years.map((year) => (
-                        <SelectItem key={year.id} value={year.id}>
-                          {year.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
                 <div className="space-y-2">
                   <Label>Nama Semester</Label>
                   <Select

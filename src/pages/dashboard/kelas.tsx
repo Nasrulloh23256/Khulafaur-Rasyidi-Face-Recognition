@@ -48,6 +48,7 @@ import type { CheckedState } from "@radix-ui/react-checkbox";
 type AcademicYear = {
   id: string;
   name: string;
+  isActive?: boolean;
 };
 
 type Semester = {
@@ -199,7 +200,10 @@ const Kelas = () => {
 
   useEffect(() => {
     if (!form.academicYearId && years.length > 0) {
-      setForm((prev) => ({ ...prev, academicYearId: years[0].id }));
+      const activeYear = years.find((year) => year.isActive) ?? years[0];
+      if (activeYear) {
+        setForm((prev) => ({ ...prev, academicYearId: activeYear.id }));
+      }
     }
   }, [years, form.academicYearId]);
 
@@ -427,24 +431,7 @@ const Kelas = () => {
                     required
                   />
                 </div>
-                <div className="space-y-2">
-                  <Label>Tahun Ajaran</Label>
-                  <Select
-                    value={form.academicYearId}
-                    onValueChange={(value) => setForm((prev) => ({ ...prev, academicYearId: value }))}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Pilih tahun ajaran" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {years.map((year) => (
-                        <SelectItem key={year.id} value={year.id}>
-                          {year.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+
                 <div className="space-y-2">
                   <Label>Semester</Label>
                   <Select

@@ -344,24 +344,6 @@ const Laporan = () => {
                   ))}
                 </SelectContent>
               </Select>
-              <Select value={filterTahunAjaran} onValueChange={setFilterTahunAjaran}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Tahun Ajaran" />
-                </SelectTrigger>
-                <SelectContent>
-                  {years.length === 0 ? (
-                    <SelectItem value="empty" disabled>
-                      Belum ada tahun ajaran
-                    </SelectItem>
-                  ) : (
-                    years.map((year) => (
-                      <SelectItem key={year.id} value={year.id}>
-                        {year.name}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
               <Button
                 variant="gradient"
                 size="sm"
