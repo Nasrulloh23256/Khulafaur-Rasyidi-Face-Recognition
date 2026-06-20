@@ -43,16 +43,20 @@ model User {
 }
 
 model Teacher {
-  id        String   @id @default(cuid())
-  userId    String?  @unique
-  fullName  String
-  phone     String?
-  createdAt DateTime @default(now())
-  updatedAt DateTime @updatedAt
+  id            String   @id @default(cuid())
+  userId        String?  @unique
+  fullName      String
+  phone         String?
+  faceEmbedding Json?
+  faceImageUrl  String?
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
 
-  user    User?   @relation(fields: [userId], references: [id])
-  classes Class[] @relation("HomeroomTeacher")
+  user        User?               @relation(fields: [userId], references: [id])
+  classes     Class[]             @relation("HomeroomTeacher")
+  attendances TeacherAttendance[]
 }
+
 
 model AcademicYear {
   id        String   @id @default(cuid())
@@ -142,3 +146,21 @@ model Attendance {
   @@index([classId, date])
   @@index([studentId, date])
 }
+
+model TeacherAttendance {
+  id           String           @id @default(cuid())
+  teacherId    String
+  date         DateTime
+  status       AttendanceStatus @default(PRESENT)
+  checkInTime  DateTime?
+  checkOutTime DateTime?
+  notes        String?
+  createdAt    DateTime         @default(now())
+  updatedAt    DateTime         @updatedAt
+
+  teacher      Teacher          @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+
+  @@unique([teacherId, date])
+  @@index([teacherId, date])
+}
+

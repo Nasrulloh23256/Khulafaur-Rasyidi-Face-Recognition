@@ -11,6 +11,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         fullName: true,
         phone: true,
         createdAt: true,
+        faceEmbedding: true,
+        faceImageUrl: true,
         user: {
           select: {
             id: true,
@@ -21,7 +23,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         classes: { select: { id: true, name: true } },
       },
     });
-    return res.status(200).json(teachers);
+
+    const payload = teachers.map((teacher) => ({
+      ...teacher,
+      hasFace: !!teacher.faceEmbedding,
+      faceEmbedding: undefined,
+    }));
+
+    return res.status(200).json(payload);
   }
 
   if (req.method === "POST") {

@@ -9,6 +9,7 @@ interface MagicBentoCardProps {
   glowRadius?: number;
   enableTilt?: boolean;
   enableMagnetism?: boolean;
+  variant?: "default" | "feature";
 }
 
 const MagicBentoCard = ({
@@ -18,8 +19,13 @@ const MagicBentoCard = ({
   glowRadius = 220,
   enableTilt = true,
   enableMagnetism = true,
+  variant = "default",
 }: MagicBentoCardProps) => {
   const cardRef = useRef<HTMLDivElement>(null);
+  const variantClass = variant === "feature" ? styles.featureCard : "";
+  const resolvedGlowRadius = variant === "feature" ? Math.max(glowRadius, 260) : glowRadius;
+  const baseGlow = variant === "feature" ? 0.45 : 0;
+  const hoverGlow = variant === "feature" ? 0.9 : 1;
 
   const handleMouseMove = (event: MouseEvent<HTMLDivElement>) => {
     if (!cardRef.current) return;
@@ -40,19 +46,21 @@ const MagicBentoCard = ({
     cardRef.current.style.setProperty("--tilt-y", `${tiltY}deg`);
     cardRef.current.style.setProperty("--magnet-x", `${magnetX}px`);
     cardRef.current.style.setProperty("--magnet-y", `${magnetY}px`);
-    cardRef.current.style.setProperty("--glow-intensity", "1");
+    cardRef.current.style.setProperty("--glow-intensity", `${hoverGlow}`);
     cardRef.current.style.setProperty("--lift", "-4px");
   };
 
   const handleMouseEnter = () => {
     if (!cardRef.current) return;
-    cardRef.current.style.setProperty("--glow-intensity", "1");
+    cardRef.current.style.setProperty("--glow-intensity", `${hoverGlow}`);
     cardRef.current.style.setProperty("--lift", "-4px");
   };
 
   const handleMouseLeave = () => {
     if (!cardRef.current) return;
-    cardRef.current.style.setProperty("--glow-intensity", "0");
+    cardRef.current.style.setProperty("--glow-intensity", `${baseGlow}`);
+    cardRef.current.style.setProperty("--glow-x", "50%");
+    cardRef.current.style.setProperty("--glow-y", "50%");
     cardRef.current.style.setProperty("--tilt-x", "0deg");
     cardRef.current.style.setProperty("--tilt-y", "0deg");
     cardRef.current.style.setProperty("--magnet-x", "0px");
@@ -63,11 +71,12 @@ const MagicBentoCard = ({
   return (
     <div
       ref={cardRef}
-      className={`${styles.card} ${className}`.trim()}
+      className={`${styles.card} ${variantClass} ${className}`.trim()}
       style={
         {
           "--glow-color": glowColor,
-          "--glow-radius": `${glowRadius}px`,
+          "--glow-radius": `${resolvedGlowRadius}px`,
+          "--glow-intensity": `${baseGlow}`,
         } as CSSProperties
       }
       onMouseMove={handleMouseMove}

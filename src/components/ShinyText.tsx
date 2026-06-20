@@ -34,7 +34,7 @@ const ShinyText = ({
   delay = 0,
 }: ShinyTextProps) => {
   const [isPaused, setIsPaused] = useState(false);
-  const progress = useMotionValue(0);
+  const progress = useMotionValue(keepTextColor ? 50 : 0);
   const elapsedRef = useRef(0);
   const lastTimeRef = useRef<number | null>(null);
   const directionRef = useRef(direction === "left" ? 1 : -1);
@@ -90,8 +90,8 @@ const ShinyText = ({
   useEffect(() => {
     directionRef.current = direction === "left" ? 1 : -1;
     elapsedRef.current = 0;
-    progress.set(0);
-  }, [direction, progress]);
+    progress.set(keepTextColor ? 50 : 0);
+  }, [direction, keepTextColor, progress]);
 
   const backgroundPosition = useTransform(progress, (p) => `${150 - p * 2}% center`);
 
@@ -105,12 +105,14 @@ const ShinyText = ({
 
   const gradientStyle: React.CSSProperties = {
     backgroundImage: keepTextColor
-      ? `linear-gradient(${spread}deg, transparent 0%, transparent 35%, ${shineColor} 50%, transparent 65%, transparent 100%)`
+      ? `linear-gradient(${spread}deg, transparent 0%, transparent 30%, ${shineColor} 45%, ${shineColor} 55%, transparent 70%, transparent 100%)`
       : `linear-gradient(${spread}deg, ${color} 0%, ${secondaryColor} 35%, ${shineColor} 50%, ${secondaryColor} 65%, ${color} 100%)`,
-    backgroundSize: "200% auto",
+    backgroundSize: keepTextColor ? "260% auto" : "200% auto",
+    backgroundRepeat: "no-repeat",
     WebkitBackgroundClip: "text",
     backgroundClip: "text",
     WebkitTextFillColor: "transparent",
+    color: "transparent",
   };
 
   const rootStyle: React.CSSProperties = {

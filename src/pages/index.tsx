@@ -257,7 +257,7 @@ const Index = () => {
                     text="Absensi digital berbasis face recognition"
                     className="text-sm font-medium"
                     color="currentColor"
-                    shineColor="#e2e8f0"
+                    shineColor="rgba(226, 232, 240, 0.95)"
                     keepTextColor
                     speed={2.4}
                   />
@@ -388,7 +388,10 @@ const Index = () => {
             >
               {features.map((feature) => (
                 <motion.div key={feature.title} variants={fadeUp}>
-                  <MagicBentoCard className="group h-full rounded-3xl bg-card border border-border/60 p-6 shadow-card hover:shadow-soft transition-all">
+                  <MagicBentoCard
+                    variant="feature"
+                    className="group h-full rounded-3xl p-6 transition-all"
+                  >
                     <div className="w-14 h-14 rounded-2xl gradient-primary flex items-center justify-center mb-4">
                       <feature.icon className="w-7 h-7 text-primary-foreground" />
                     </div>

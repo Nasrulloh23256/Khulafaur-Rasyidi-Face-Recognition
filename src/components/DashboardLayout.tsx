@@ -31,8 +31,10 @@ const adminMenuItems = [
   { icon: Camera, label: "Enroll Wajah", path: "/dashboard/enroll-wajah" },
   { icon: Users, label: "Wali Kelas", path: "/dashboard/wali-kelas" },
   { icon: Camera, label: "Kehadiran", path: "/dashboard/kehadiran" },
+  { icon: Camera, label: "Kehadiran Pengajar", path: "/dashboard/kehadiran-pengajar" },
   { icon: FileText, label: "Laporan", path: "/dashboard/laporan" },
   { icon: ClipboardCheck, label: "Rekap Absensi", path: "/dashboard/rekap" },
+  { icon: ClipboardCheck, label: "Rekap Pengajar", path: "/dashboard/rekap-pengajar" },
   { icon: Calendar, label: "Semester", path: "/dashboard/semester" },
   { icon: Settings, label: "Tahun Ajaran", path: "/dashboard/tahun-ajaran" },
   { icon: UserCog, label: "Super Admin", path: "/dashboard/admin" },
@@ -40,6 +42,7 @@ const adminMenuItems = [
 
 const teacherMenuItems = [
   { icon: Camera, label: "Kehadiran", path: "/dashboard/kehadiran" },
+  { icon: Camera, label: "Kehadiran Pengajar", path: "/dashboard/kehadiran-pengajar" },
   { icon: BookOpen, label: "Kelas", path: "/dashboard/kelas" },
   { icon: GraduationCap, label: "Siswa", path: "/dashboard/siswa" },
   { icon: Camera, label: "Enroll Wajah", path: "/dashboard/enroll-wajah" },

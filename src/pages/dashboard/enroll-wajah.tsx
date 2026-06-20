@@ -23,6 +23,14 @@ type StudentItem = {
   hasFace: boolean;
 };
 
+type TeacherItem = {
+  id: string;
+  fullName: string;
+  phone: string | null;
+  faceImageUrl: string | null;
+  hasFace: boolean;
+};
+
 type QualityResult = {
   passed: boolean;
   message: string;
@@ -37,25 +45,34 @@ const MIN_SAMPLES = 4;
 
 const EnrollWajah = () => {
   const { toast } = useToast();
+  const [memberType, setMemberType] = useState<"student" | "teacher">("student");
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [students, setStudents] = useState<StudentItem[]>([]);
+  const [teachers, setTeachers] = useState<TeacherItem[]>([]);
+  
   const [selectedClassId, setSelectedClassId] = useState("all");
   const [selectedStudentId, setSelectedStudentId] = useState("");
+  const [selectedTeacherId, setSelectedTeacherId] = useState("");
+  
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const [sampleCount, setSampleCount] = useState(0);
   const [statusMessage, setStatusMessage] = useState("Siapkan kamera.");
   const [isSaving, setIsSaving] = useState(false);
+  
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
   const analysisCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const snapshotCanvasRef = useRef<HTMLCanvasElement | null>(null);
   const abortRef = useRef(false);
 
-  const selectedStudent = useMemo(
-    () => students.find((item) => item.id === selectedStudentId) ?? null,
-    [students, selectedStudentId],
-  );
+  const selectedMember = useMemo(() => {
+    if (memberType === "student") {
+      return students.find((item) => item.id === selectedStudentId) ?? null;
+    } else {
+      return teachers.find((item) => item.id === selectedTeacherId) ?? null;
+    }
+  }, [memberType, students, teachers, selectedStudentId, selectedTeacherId]);
 
   const filteredStudents = useMemo(() => {
     if (selectedClassId === "all") return students;
@@ -64,15 +81,22 @@ const EnrollWajah = () => {
 
   const loadData = async () => {
     try {
-      const [classRes, studentRes] = await Promise.all([fetch("/api/classes"), fetch("/api/students")]);
+      const [classRes, studentRes, teacherRes] = await Promise.all([
+        fetch("/api/classes"),
+        fetch("/api/students"),
+        fetch("/api/teachers")
+      ]);
       const classData = await classRes.json();
       const studentData = await studentRes.json();
+      const teacherData = await teacherRes.json();
+      
       if (classRes.ok) setClasses(classData);
       if (studentRes.ok) setStudents(studentData);
+      if (teacherRes.ok) setTeachers(teacherData);
     } catch {
       toast({
         title: "Gagal memuat data",
-        description: "Tidak bisa mengambil data kelas atau siswa",
+        description: "Tidak bisa mengambil data kelas, siswa, atau pengajar",
         variant: "destructive",
       });
     }
@@ -83,11 +107,12 @@ const EnrollWajah = () => {
   }, []);
 
   useEffect(() => {
-    if (selectedClassId === "all") return;
-    if (selectedStudent && selectedStudent.classId !== selectedClassId) {
-      setSelectedStudentId("");
+    if (memberType === "student" && selectedClassId !== "all") {
+      if (selectedMember && (selectedMember as StudentItem).classId !== selectedClassId) {
+        setSelectedStudentId("");
+      }
     }
-  }, [selectedClassId, selectedStudent]);
+  }, [selectedClassId, selectedMember, memberType]);
 
   const startCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -278,10 +303,10 @@ const EnrollWajah = () => {
   const sleep = (ms: number) => new Promise((resolve) => setTimeout(resolve, ms));
 
   const handleCapture = async () => {
-    if (!selectedStudent) {
+    if (!selectedMember) {
       toast({
-        title: "Siswa belum dipilih",
-        description: "Pilih siswa sebelum melakukan enroll wajah.",
+        title: "Anggota belum dipilih",
+        description: "Pilih siswa atau pengajar sebelum melakukan enroll wajah.",
         variant: "destructive",
       });
       return;
@@ -358,8 +383,13 @@ const EnrollWajah = () => {
 
     setIsSaving(true);
     setStatusMessage("Menyimpan data wajah...");
+    
+    const apiPath = memberType === "student"
+      ? `/api/students/${selectedMember.id}/enroll-face`
+      : `/api/teachers/${selectedMember.id}/enroll-face`;
+
     try {
-      const response = await fetch(`/api/students/${selectedStudent.id}/enroll-face`, {
+      const response = await fetch(apiPath, {
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
@@ -372,16 +402,27 @@ const EnrollWajah = () => {
         throw new Error(data?.error ?? "Gagal menyimpan data wajah");
       }
 
-      setStudents((prev) =>
-        prev.map((item) =>
-          item.id === selectedStudent.id
-            ? { ...item, hasFace: true, faceImageUrl: data.faceImageUrl ?? item.faceImageUrl }
-            : item,
-        ),
-      );
+      if (memberType === "student") {
+        setStudents((prev) =>
+          prev.map((item) =>
+            item.id === selectedMember.id
+              ? { ...item, hasFace: true, faceImageUrl: data.faceImageUrl ?? item.faceImageUrl }
+              : item
+          )
+        );
+      } else {
+        setTeachers((prev) =>
+          prev.map((item) =>
+            item.id === selectedMember.id
+              ? { ...item, hasFace: true, faceImageUrl: data.faceImageUrl ?? item.faceImageUrl }
+              : item
+          )
+        );
+      }
+      
       toast({
         title: "Enroll berhasil",
-        description: `Wajah ${selectedStudent.fullName} tersimpan.`,
+        description: `Wajah ${selectedMember.fullName} tersimpan.`,
       });
       setIsCameraOpen(false);
     } catch (error) {
@@ -398,63 +439,115 @@ const EnrollWajah = () => {
   };
 
   return (
-    <DashboardLayout title="Enroll Wajah" subtitle="Daftarkan wajah siswa melalui kamera">
+    <DashboardLayout title="Enroll Wajah" subtitle="Daftarkan wajah siswa atau pengajar melalui kamera">
       <div className="space-y-6">
+        
+        {/* Toggle Tipe Anggota */}
+        <div className="flex gap-2 p-1 bg-muted rounded-lg max-w-[280px]">
+          <Button
+            variant={memberType === "student" ? "default" : "ghost"}
+            size="sm"
+            className="flex-1 rounded-md"
+            onClick={() => setMemberType("student")}
+          >
+            Siswa
+          </Button>
+          <Button
+            variant={memberType === "teacher" ? "default" : "ghost"}
+            size="sm"
+            className="flex-1 rounded-md"
+            onClick={() => setMemberType("teacher")}
+          >
+            Pengajar (Guru)
+          </Button>
+        </div>
+
         <Card className="border-0 shadow-card">
           <CardHeader>
-            <CardTitle>Pilih Siswa</CardTitle>
+            <CardTitle>Pilih {memberType === "student" ? "Siswa" : "Pengajar"}</CardTitle>
           </CardHeader>
           <CardContent className="space-y-4">
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Filter Kelas</label>
-                <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Semua Kelas" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">Semua Kelas</SelectItem>
-                    {classes.map((kelas) => (
-                      <SelectItem key={kelas.id} value={kelas.id}>
-                        {kelas.name}
-                      </SelectItem>
-                    ))}
-                  </SelectContent>
-                </Select>
-              </div>
-              <div className="space-y-2">
-                <label className="text-sm font-medium text-foreground">Nama Siswa</label>
-                <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih siswa" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredStudents.length === 0 ? (
-                      <SelectItem value="empty" disabled>
-                        Belum ada siswa
-                      </SelectItem>
-                    ) : (
-                      filteredStudents.map((student) => (
-                        <SelectItem key={student.id} value={student.id}>
-                          {student.fullName} {student.class?.name ? `(${student.class.name})` : ""}
+              
+              {memberType === "student" ? (
+                <>
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Filter Kelas</label>
+                    <Select value={selectedClassId} onValueChange={setSelectedClassId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Semua Kelas" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="all">Semua Kelas</SelectItem>
+                        {classes.map((kelas) => (
+                          <SelectItem key={kelas.id} value={kelas.id}>
+                            {kelas.name}
+                          </SelectItem>
+                        ))}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                  
+                  <div className="space-y-2">
+                    <label className="text-sm font-medium text-foreground">Nama Siswa</label>
+                    <Select value={selectedStudentId} onValueChange={setSelectedStudentId}>
+                      <SelectTrigger>
+                        <SelectValue placeholder="Pilih siswa" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        {filteredStudents.length === 0 ? (
+                          <SelectItem value="empty" disabled>
+                            Belum ada siswa
+                          </SelectItem>
+                        ) : (
+                          filteredStudents.map((student) => (
+                            <SelectItem key={student.id} value={student.id}>
+                              {student.fullName} {student.class?.name ? `(${student.class.name})` : ""}
+                            </SelectItem>
+                          ))
+                        )}
+                      </SelectContent>
+                    </Select>
+                  </div>
+                </>
+              ) : (
+                <div className="space-y-2 sm:col-span-2">
+                  <label className="text-sm font-medium text-foreground">Nama Pengajar</label>
+                  <Select value={selectedTeacherId} onValueChange={setSelectedTeacherId}>
+                    <SelectTrigger className="w-full">
+                      <SelectValue placeholder="Pilih pengajar" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {teachers.length === 0 ? (
+                        <SelectItem value="empty" disabled>
+                          Belum ada pengajar terdaftar
                         </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
+                      ) : (
+                        teachers.map((teacher) => (
+                          <SelectItem key={teacher.id} value={teacher.id}>
+                            {teacher.fullName} {teacher.phone ? `(${teacher.phone})` : ""}
+                          </SelectItem>
+                        ))
+                      )}
+                    </SelectContent>
+                  </Select>
+                </div>
+              )}
+              
             </div>
+            
             <div className="flex items-center gap-4">
               <Button
                 variant="gradient"
                 className="gap-2"
-                disabled={!selectedStudent}
+                disabled={!selectedMember}
                 onClick={() => setIsCameraOpen(true)}
               >
                 <Camera className="w-4 h-4" />
                 Mulai Enroll Wajah
               </Button>
-              {selectedStudent?.hasFace && (
+              
+              {selectedMember?.hasFace && (
                 <span className="inline-flex items-center gap-2 text-sm text-success">
                   <CheckCircle2 className="w-4 h-4" />
                   Wajah sudah terdaftar
@@ -479,9 +572,9 @@ const EnrollWajah = () => {
       <Dialog open={isCameraOpen} onOpenChange={setIsCameraOpen}>
         <DialogContent className="max-w-3xl">
           <DialogHeader>
-            <DialogTitle>Enroll Wajah</DialogTitle>
+            <DialogTitle>Enroll Wajah {memberType === "student" ? "Siswa" : "Pengajar"}</DialogTitle>
             <DialogDescription>
-              {selectedStudent ? `Siswa: ${selectedStudent.fullName}` : "Pilih siswa dahulu"}
+              {selectedMember ? `${memberType === "student" ? "Siswa" : "Pengajar"}: ${selectedMember.fullName}` : "Pilih anggota terlebih dahulu"}
             </DialogDescription>
           </DialogHeader>
           <div className="space-y-4">
@@ -513,7 +606,7 @@ const EnrollWajah = () => {
               <Button
                 variant="gradient"
                 onClick={handleCapture}
-                disabled={!selectedStudent || isCapturing || isSaving}
+                disabled={!selectedMember || isCapturing || isSaving}
               >
                 Mulai Ambil Sampel
               </Button>

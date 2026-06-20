@@ -5,6 +5,7 @@
   line-height: 1.2;
   padding-bottom: 0.08em;
   overflow: visible;
+  isolation: isolate;
 }
 
 .baseText {
@@ -21,7 +22,7 @@
   user-select: none;
   white-space: inherit;
   will-change: background-position;
-  mix-blend-mode: screen;
-  opacity: 0.95;
-  filter: drop-shadow(0 0 6px var(--shine-color, rgba(255, 255, 255, 0.7)));
+  opacity: 1;
+  filter: drop-shadow(0 0 10px var(--shine-color, rgba(255, 255, 255, 0.85)));
+  text-shadow: 0 0 10px var(--shine-color, rgba(255, 255, 255, 0.85));
 }
