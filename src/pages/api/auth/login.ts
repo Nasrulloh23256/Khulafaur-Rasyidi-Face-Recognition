@@ -25,7 +25,16 @@ export default async function handler(
     return res.status(400).json({ error: "Invalid request body" });
   }
 
-  const user = await prisma.user.findUnique({ where: { email } });
+  const normalizedEmail = email.trim().toLowerCase();
+  if (!normalizedEmail || !password) {
+    return res.status(401).json({ error: "Invalid credentials" });
+  }
+
+  const user = await prisma.user.findFirst({
+    where: {
+      email: { equals: normalizedEmail, mode: "insensitive" },
+    },
+  });
 
   if (!user || (user.role !== "ADMIN" && user.role !== "TEACHER")) {
     return res.status(401).json({ error: "Invalid credentials" });
