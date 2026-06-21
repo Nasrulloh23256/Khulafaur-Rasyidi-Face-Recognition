@@ -1,0 +1,3 @@
+ALTER TABLE "Teacher" ADD COLUMN IF NOT EXISTS "faceEmbedding" JSONB;
+ALTER TABLE "Teacher" ADD COLUMN IF NOT EXISTS "faceImageUrl" TEXT;
+ALTER TABLE "TeacherAttendance" ADD COLUMN IF NOT EXISTS "status" "AttendanceStatus" NOT NULL DEFAULT 'PRESENT';

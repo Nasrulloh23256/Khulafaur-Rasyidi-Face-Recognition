@@ -61,6 +61,7 @@ export const ensureTeacherAttendanceTable = async () => {
           "id" TEXT NOT NULL,
           "teacherId" TEXT NOT NULL,
           "date" TIMESTAMP(3) NOT NULL,
+          "status" "AttendanceStatus" NOT NULL DEFAULT 'PRESENT',
           "checkInTime" TIMESTAMP(3),
           "checkOutTime" TIMESTAMP(3),
           "notes" TEXT,
@@ -77,6 +78,15 @@ export const ensureTeacherAttendanceTable = async () => {
       );
       await prisma.$executeRawUnsafe(
         `CREATE UNIQUE INDEX IF NOT EXISTS "TeacherAttendance_teacherId_date_key" ON "TeacherAttendance"("teacherId", "date")`,
+      );
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "Teacher" ADD COLUMN IF NOT EXISTS "faceEmbedding" JSONB`,
+      );
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "Teacher" ADD COLUMN IF NOT EXISTS "faceImageUrl" TEXT`,
+      );
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "TeacherAttendance" ADD COLUMN IF NOT EXISTS "status" "AttendanceStatus" NOT NULL DEFAULT 'PRESENT'`,
       );
       await prisma.$executeRawUnsafe(`
         DO $$

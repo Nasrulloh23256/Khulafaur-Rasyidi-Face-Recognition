@@ -1,12 +1,11 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import {
   AlertCircle,
+  Camera,
   CalendarDays,
   CheckCircle2,
   Clock,
   Download,
-  LogIn,
-  LogOut,
   RefreshCw,
   UserCheck,
   Users,
@@ -15,6 +14,14 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
   Table,
@@ -25,6 +32,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
+import { getStableFaceDescriptor } from "@/lib/face-api";
 
 type AuthUser = {
   id: string;
@@ -41,6 +49,16 @@ type TeacherAttendance = {
   checkInTime: string | null;
   checkOutTime: string | null;
   notes: string | null;
+};
+
+type CurrentTeacher = {
+  id: string;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+  classes: { id: string; name: string }[];
+  faceImageUrl: string | null;
+  hasFace: boolean;
 };
 
 type TeacherRow = {
@@ -125,6 +143,7 @@ const csvEscape = (value: string | number | null | undefined) => {
 const AbsensiPengajarPage = () => {
   const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
+  const [currentTeacher, setCurrentTeacher] = useState<CurrentTeacher | null>(null);
   const [selectedDate, setSelectedDate] = useState(getLocalDateKey);
   const [todayAttendance, setTodayAttendance] = useState<TeacherAttendance | null>(null);
   const [teacherStatus, setTeacherStatus] = useState<TeacherAttendanceStatus>("BELUM_ABSEN");
@@ -151,6 +170,11 @@ const AbsensiPengajarPage = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isRecapLoading, setIsRecapLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
+  const [isCameraOpen, setIsCameraOpen] = useState(false);
+  const [isRecognizing, setIsRecognizing] = useState(false);
+  const [pendingAction, setPendingAction] = useState<"check-in" | "check-out" | null>(null);
+  const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
 
   const isTeacher = currentUser?.role === "TEACHER";
   const pageSubtitle = isTeacher
@@ -182,6 +206,7 @@ const AbsensiPengajarPage = () => {
     if (!response.ok) {
       throw new Error(data?.error ?? "Gagal memuat absensi pengajar");
     }
+    setCurrentTeacher(data.teacher ?? null);
     setTodayAttendance(data.today ?? null);
     setTeacherStatus(data.status ?? "BELUM_ABSEN");
     setRecentAttendance((data.recent ?? []).filter(Boolean));
@@ -290,7 +315,62 @@ const AbsensiPengajarPage = () => {
     }
   }, [selectedDate]);
 
-  const handleTeacherAction = async (action: "check-in" | "check-out") => {
+  const startCamera = async () => {
+    if (!navigator.mediaDevices?.getUserMedia) {
+      toast({
+        title: "Kamera tidak tersedia",
+        description: "Browser tidak mendukung akses kamera.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: "user" } });
+      streamRef.current = stream;
+      if (videoRef.current) {
+        videoRef.current.srcObject = stream;
+        await videoRef.current.play();
+      }
+    } catch {
+      toast({
+        title: "Gagal membuka kamera",
+        description: "Periksa izin kamera di browser.",
+        variant: "destructive",
+      });
+      setIsCameraOpen(false);
+    }
+  };
+
+  const stopCamera = () => {
+    streamRef.current?.getTracks().forEach((track) => track.stop());
+    streamRef.current = null;
+  };
+
+  useEffect(() => {
+    if (isCameraOpen) {
+      startCamera();
+    } else {
+      stopCamera();
+    }
+    return () => stopCamera();
+  }, [isCameraOpen]);
+
+  const openFaceScan = (action: "check-in" | "check-out") => {
+    if (!currentTeacher?.hasFace) {
+      toast({
+        title: "Wajah belum terdaftar",
+        description: "Daftarkan wajah pengajar di menu Enroll Wajah terlebih dahulu.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setPendingAction(action);
+    setIsCameraOpen(true);
+  };
+
+  const handleTeacherAction = async (action: "check-in" | "check-out", descriptor: number[]) => {
     if (!currentUser) return;
 
     setIsSaving(true);
@@ -302,6 +382,7 @@ const AbsensiPengajarPage = () => {
           userId: currentUser.id,
           action,
           date: getLocalDateKey(),
+          descriptor,
         }),
       });
       const data = await response.json();
@@ -312,10 +393,15 @@ const AbsensiPengajarPage = () => {
       setTodayAttendance(data.attendance ?? null);
       setTeacherStatus(data.status ?? "BELUM_ABSEN");
       await loadTeacherAttendance(currentUser.id);
+      setIsCameraOpen(false);
+      setPendingAction(null);
 
       toast({
         title: "Absensi tersimpan",
-        description: action === "check-in" ? "Jam datang berhasil dicatat." : "Jam pulang berhasil dicatat.",
+        description:
+          action === "check-in"
+            ? "Wajah cocok. Jam datang berhasil dicatat."
+            : "Wajah cocok. Jam pulang berhasil dicatat.",
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Gagal menyimpan absensi";
@@ -326,6 +412,38 @@ const AbsensiPengajarPage = () => {
       });
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleFaceScan = async () => {
+    if (!pendingAction || !videoRef.current) return;
+
+    setIsRecognizing(true);
+    try {
+      const descriptor = await getStableFaceDescriptor(videoRef.current, {
+        samples: 6,
+        minSamples: 3,
+        intervalMs: 150,
+      });
+      if (!descriptor) {
+        toast({
+          title: "Wajah tidak terdeteksi",
+          description: "Arahkan wajah ke kamera dengan pencahayaan cukup.",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      await handleTeacherAction(pendingAction, Array.from(descriptor));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gagal melakukan scan wajah";
+      toast({
+        title: "Gagal scan wajah",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsRecognizing(false);
     }
   };
 
@@ -413,20 +531,20 @@ const AbsensiPengajarPage = () => {
                     <Button
                       variant="gradient"
                       className="gap-2"
-                      onClick={() => handleTeacherAction("check-in")}
-                      disabled={!canCheckIn || isSaving}
+                      onClick={() => openFaceScan("check-in")}
+                      disabled={!canCheckIn || isSaving || isRecognizing}
                     >
-                      <LogIn className="w-4 h-4" />
-                      Absen Datang
+                      <Camera className="w-4 h-4" />
+                      Scan Wajah Datang
                     </Button>
                     <Button
                       variant="outline"
                       className="gap-2"
-                      onClick={() => handleTeacherAction("check-out")}
-                      disabled={!canCheckOut || isSaving}
+                      onClick={() => openFaceScan("check-out")}
+                      disabled={!canCheckOut || isSaving || isRecognizing}
                     >
-                      <LogOut className="w-4 h-4" />
-                      Absen Pulang
+                      <Camera className="w-4 h-4" />
+                      Scan Wajah Pulang
                     </Button>
                     <Button variant="ghost" className="gap-2" onClick={() => loadData()} disabled={isLoading}>
                       <RefreshCw className="w-4 h-4" />
@@ -446,8 +564,33 @@ const AbsensiPengajarPage = () => {
                 <CardContent className="flex flex-col gap-3">
                   <p className="text-2xl font-bold text-foreground">{formatDate(getLocalDateKey())}</p>
                   <p className="text-sm text-muted-foreground">
-                    Gunakan tombol datang saat mulai mengajar dan tombol pulang saat selesai.
+                    Gunakan scan wajah saat mulai mengajar dan saat selesai.
                   </p>
+                  <div className="rounded-xl border border-border p-3">
+                    <p className="text-sm font-medium text-foreground">Status Wajah</p>
+                    <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
+                      {currentTeacher?.hasFace ? (
+                        <span className="inline-flex items-center gap-2 text-sm text-success">
+                          <CheckCircle2 className="w-4 h-4" />
+                          Wajah sudah terdaftar
+                        </span>
+                      ) : (
+                        <span className="inline-flex items-center gap-2 text-sm text-destructive">
+                          <AlertCircle className="w-4 h-4" />
+                          Wajah belum terdaftar
+                        </span>
+                      )}
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="gap-2"
+                        onClick={() => window.open("/dashboard/enroll-wajah", "_self")}
+                      >
+                        <Camera className="w-4 h-4" />
+                        Enroll Wajah
+                      </Button>
+                    </div>
+                  </div>
                 </CardContent>
               </Card>
             </div>
@@ -778,6 +921,68 @@ const AbsensiPengajarPage = () => {
           </>
         )}
       </div>
+
+      <Dialog
+        open={isCameraOpen}
+        onOpenChange={(open) => {
+          setIsCameraOpen(open);
+          if (!open) {
+            setPendingAction(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Scan Wajah Pengajar</DialogTitle>
+            <DialogDescription>
+              {pendingAction === "check-out"
+                ? "Arahkan wajah ke kamera untuk mencatat jam pulang."
+                : "Arahkan wajah ke kamera untuk mencatat jam datang."}
+            </DialogDescription>
+          </DialogHeader>
+          <div className="flex flex-col gap-4">
+            <div className="aspect-video w-full overflow-hidden rounded-lg bg-muted">
+              <video
+                ref={videoRef}
+                className="h-full w-full object-cover"
+                style={{ transform: "scaleX(-1)" }}
+                muted
+                playsInline
+              />
+            </div>
+            <div className="rounded-lg border border-border p-3 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">{currentTeacher?.fullName ?? "Pengajar"}</p>
+              <p>
+                {isRecognizing
+                  ? "Mendeteksi wajah dari beberapa frame..."
+                  : "Pastikan wajah terlihat jelas dan pencahayaan cukup."}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsCameraOpen(false)}
+              disabled={isRecognizing || isSaving}
+            >
+              Tutup
+            </Button>
+            <Button
+              variant="gradient"
+              className="gap-2"
+              onClick={handleFaceScan}
+              disabled={isRecognizing || isSaving || !pendingAction}
+            >
+              <Camera className="w-4 h-4" />
+              {isRecognizing || isSaving
+                ? "Mendeteksi..."
+                : pendingAction === "check-out"
+                  ? "Scan Pulang"
+                  : "Scan Datang"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };
