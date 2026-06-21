@@ -164,3 +164,11 @@ model TeacherAttendance {
   @@index([date])
   @@index([teacherId, date])
 }
+
+model TeacherPayrollSetting {
+  id         String   @id @default(cuid())
+  hourlyRate Int      @default(0)
+  period     String   @default("MONTHLY")
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+}

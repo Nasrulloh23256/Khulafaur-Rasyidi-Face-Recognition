@@ -17,7 +17,8 @@ import {
   Bell,
   Search,
   Camera,
-  UserCheck
+  UserCheck,
+  Wallet
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -32,6 +33,7 @@ const adminMenuItems = [
   { icon: Camera, label: "Enroll Wajah", path: "/dashboard/enroll-wajah" },
   { icon: Users, label: "Pengajar", path: "/dashboard/wali-kelas" },
   { icon: UserCheck, label: "Absensi Pengajar", path: "/dashboard/absensi-pengajar" },
+  { icon: Wallet, label: "Penggajian", path: "/dashboard/penggajian-pengajar" },
   { icon: Camera, label: "Kehadiran", path: "/dashboard/kehadiran" },
   { icon: FileText, label: "Laporan", path: "/dashboard/laporan" },
   { icon: ClipboardCheck, label: "Rekap Absensi", path: "/dashboard/rekap" },
