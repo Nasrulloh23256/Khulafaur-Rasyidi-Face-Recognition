@@ -4,6 +4,7 @@ import {
   CalendarDays,
   CheckCircle2,
   Clock,
+  Download,
   LogIn,
   LogOut,
   RefreshCw,
@@ -59,9 +60,46 @@ type AdminStats = {
   notCheckedIn: number;
 };
 
+type RecapDaily = {
+  date: string;
+  checkInTime: string | null;
+  checkOutTime: string | null;
+  status: TeacherAttendanceStatus;
+};
+
+type RecapTeacherRow = {
+  id: string;
+  fullName: string;
+  phone: string | null;
+  email: string | null;
+  classes: { id: string; name: string }[];
+  totals: {
+    present: number;
+    complete: number;
+    missingCheckOut: number;
+    absent: number;
+  };
+  daily: RecapDaily[];
+};
+
+type RecapStats = {
+  totalTeachers: number;
+  totalDays: number;
+  totalSlots: number;
+  presentSlots: number;
+  completeSlots: number;
+  missingCheckOut: number;
+  absentSlots: number;
+};
+
 const getLocalDateKey = (value = new Date()) => {
   const offsetDate = new Date(value.getTime() - value.getTimezoneOffset() * 60000);
   return offsetDate.toISOString().slice(0, 10);
+};
+
+const getMonthStartKey = () => {
+  const today = new Date();
+  return getLocalDateKey(new Date(today.getFullYear(), today.getMonth(), 1));
 };
 
 const formatDate = (value: string) =>
@@ -78,6 +116,12 @@ const statusLabel: Record<TeacherAttendanceStatus, string> = {
   SELESAI: "Selesai",
 };
 
+const csvEscape = (value: string | number | null | undefined) => {
+  const rawValue = value === null || value === undefined ? "" : String(value);
+  const safeValue = /^[=+\-@]/.test(rawValue) ? `'${rawValue}` : rawValue;
+  return `"${safeValue.replace(/"/g, '""')}"`;
+};
+
 const AbsensiPengajarPage = () => {
   const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -92,7 +136,20 @@ const AbsensiPengajarPage = () => {
     checkedOut: 0,
     notCheckedIn: 0,
   });
+  const [recapStart, setRecapStart] = useState(getMonthStartKey);
+  const [recapEnd, setRecapEnd] = useState(getLocalDateKey);
+  const [recapRows, setRecapRows] = useState<RecapTeacherRow[]>([]);
+  const [recapStats, setRecapStats] = useState<RecapStats>({
+    totalTeachers: 0,
+    totalDays: 0,
+    totalSlots: 0,
+    presentSlots: 0,
+    completeSlots: 0,
+    missingCheckOut: 0,
+    absentSlots: 0,
+  });
   const [isLoading, setIsLoading] = useState(true);
+  const [isRecapLoading, setIsRecapLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
 
   const isTeacher = currentUser?.role === "TEACHER";
@@ -101,6 +158,22 @@ const AbsensiPengajarPage = () => {
     : "Pantau jam datang dan jam pulang semua pengajar";
 
   const formattedSelectedDate = useMemo(() => formatDate(selectedDate), [selectedDate]);
+  const flatRecapRows = useMemo(
+    () =>
+      recapRows.flatMap((teacher) =>
+        teacher.daily.map((item) => ({
+          teacherId: teacher.id,
+          fullName: teacher.fullName,
+          contact: teacher.email ?? teacher.phone ?? "-",
+          classes: teacher.classes.length > 0 ? teacher.classes.map((kelas) => kelas.name).join(", ") : "-",
+          date: item.date,
+          checkInTime: item.checkInTime,
+          checkOutTime: item.checkOutTime,
+          status: item.status,
+        })),
+      ),
+    [recapRows],
+  );
 
   const loadTeacherAttendance = async (userId: string) => {
     const todayKey = getLocalDateKey();
@@ -131,6 +204,47 @@ const AbsensiPengajarPage = () => {
     );
   };
 
+  const loadRecapAttendance = async () => {
+    if (recapStart > recapEnd) {
+      toast({
+        title: "Rentang tanggal tidak valid",
+        description: "Tanggal awal tidak boleh melewati tanggal akhir.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsRecapLoading(true);
+    try {
+      const response = await fetch(`/api/teacher-attendance?start=${recapStart}&end=${recapEnd}`);
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Gagal memuat rekap absensi pengajar");
+      }
+      setRecapRows(data.teachers ?? []);
+      setRecapStats(
+        data.stats ?? {
+          totalTeachers: 0,
+          totalDays: 0,
+          totalSlots: 0,
+          presentSlots: 0,
+          completeSlots: 0,
+          missingCheckOut: 0,
+          absentSlots: 0,
+        },
+      );
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "Gagal memuat rekap absensi pengajar";
+      toast({
+        title: "Gagal memuat rekap",
+        description: message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsRecapLoading(false);
+    }
+  };
+
   const loadData = async (user: AuthUser | null = currentUser) => {
     if (!user) return;
 
@@ -139,7 +253,7 @@ const AbsensiPengajarPage = () => {
       if (user.role === "TEACHER") {
         await loadTeacherAttendance(user.id);
       } else {
-        await loadAdminAttendance();
+        await Promise.all([loadAdminAttendance(), loadRecapAttendance()]);
       }
     } catch (error) {
       const message = error instanceof Error ? error.message : "Gagal memuat absensi pengajar";
@@ -213,6 +327,40 @@ const AbsensiPengajarPage = () => {
     } finally {
       setIsSaving(false);
     }
+  };
+
+  const handleDownloadRecap = () => {
+    if (flatRecapRows.length === 0) {
+      toast({
+        title: "Belum ada data",
+        description: "Muat rekap terlebih dahulu sebelum download.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    const headers = ["Tanggal", "Pengajar", "Kontak", "Kelas", "Jam Datang", "Jam Keluar", "Status"];
+    const rows = flatRecapRows.map((item) => [
+      formatDate(item.date),
+      item.fullName,
+      item.contact,
+      item.classes,
+      item.checkInTime ?? "-",
+      item.checkOutTime ?? "-",
+      statusLabel[item.status],
+    ]);
+    const csvContent = [headers, ...rows]
+      .map((row) => row.map((value) => csvEscape(value)).join(","))
+      .join("\r\n");
+    const blob = new Blob([`\uFEFF${csvContent}`], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `rekap-absensi-pengajar-${recapStart}-sampai-${recapEnd}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
   };
 
   const renderStatusBadge = (status: TeacherAttendanceStatus) => {
@@ -459,6 +607,172 @@ const AbsensiPengajarPage = () => {
                     ))}
                   </TableBody>
                 </Table>
+              </CardContent>
+            </Card>
+
+            <Card className="border-0 shadow-card">
+              <CardHeader>
+                <div className="flex flex-col xl:flex-row gap-4 justify-between xl:items-center">
+                  <div>
+                    <CardTitle>Rekap Rentang Tanggal</CardTitle>
+                    <p className="mt-1 text-sm text-muted-foreground">
+                      {formatDate(recapStart)} sampai {formatDate(recapEnd)}
+                    </p>
+                  </div>
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[160px_160px_auto_auto] gap-2">
+                    <Input
+                      type="date"
+                      value={recapStart}
+                      onChange={(event) => setRecapStart(event.target.value)}
+                    />
+                    <Input
+                      type="date"
+                      value={recapEnd}
+                      onChange={(event) => setRecapEnd(event.target.value)}
+                    />
+                    <Button
+                      variant="outline"
+                      className="gap-2"
+                      onClick={loadRecapAttendance}
+                      disabled={isRecapLoading}
+                    >
+                      <RefreshCw className="w-4 h-4" />
+                      {isRecapLoading ? "Memuat..." : "Muat Rekap"}
+                    </Button>
+                    <Button
+                      variant="gradient"
+                      className="gap-2"
+                      onClick={handleDownloadRecap}
+                      disabled={isRecapLoading || flatRecapRows.length === 0}
+                    >
+                      <Download className="w-4 h-4" />
+                      Download CSV
+                    </Button>
+                  </div>
+                </div>
+              </CardHeader>
+              <CardContent className="flex flex-col gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
+                  <div className="rounded-xl bg-muted/50 p-4">
+                    <p className="text-sm text-muted-foreground">Hari Rekap</p>
+                    <p className="text-2xl font-bold text-foreground">{recapStats.totalDays}</p>
+                  </div>
+                  <div className="rounded-xl bg-muted/50 p-4">
+                    <p className="text-sm text-muted-foreground">Total Slot</p>
+                    <p className="text-2xl font-bold text-foreground">{recapStats.totalSlots}</p>
+                  </div>
+                  <div className="rounded-xl bg-success/10 p-4">
+                    <p className="text-sm text-muted-foreground">Hadir</p>
+                    <p className="text-2xl font-bold text-success">{recapStats.presentSlots}</p>
+                  </div>
+                  <div className="rounded-xl bg-warning/10 p-4">
+                    <p className="text-sm text-muted-foreground">Belum Pulang</p>
+                    <p className="text-2xl font-bold text-warning">{recapStats.missingCheckOut}</p>
+                  </div>
+                  <div className="rounded-xl bg-muted p-4">
+                    <p className="text-sm text-muted-foreground">Tidak Absen</p>
+                    <p className="text-2xl font-bold text-foreground">{recapStats.absentSlots}</p>
+                  </div>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Pengajar</TableHead>
+                        <TableHead>Kelas</TableHead>
+                        <TableHead>Hadir</TableHead>
+                        <TableHead>Jam Lengkap</TableHead>
+                        <TableHead>Belum Pulang</TableHead>
+                        <TableHead>Tidak Absen</TableHead>
+                        <TableHead>Persentase</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isRecapLoading && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground">
+                            Memuat rekap...
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {!isRecapLoading && recapRows.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={7} className="text-center text-muted-foreground">
+                            Belum ada rekap untuk rentang ini.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {recapRows.map((teacher) => {
+                        const attendancePercent =
+                          recapStats.totalDays > 0
+                            ? Math.round((teacher.totals.present / recapStats.totalDays) * 100)
+                            : 0;
+                        return (
+                          <TableRow key={teacher.id}>
+                            <TableCell>
+                              <div className="font-semibold text-foreground">{teacher.fullName}</div>
+                              <div className="text-xs text-muted-foreground">
+                                {teacher.email ?? teacher.phone ?? "-"}
+                              </div>
+                            </TableCell>
+                            <TableCell>
+                              {teacher.classes.length > 0
+                                ? teacher.classes.map((item) => item.name).join(", ")
+                                : "-"}
+                            </TableCell>
+                            <TableCell>{teacher.totals.present}</TableCell>
+                            <TableCell>{teacher.totals.complete}</TableCell>
+                            <TableCell>{teacher.totals.missingCheckOut}</TableCell>
+                            <TableCell>{teacher.totals.absent}</TableCell>
+                            <TableCell>{attendancePercent}%</TableCell>
+                          </TableRow>
+                        );
+                      })}
+                    </TableBody>
+                  </Table>
+                </div>
+
+                <div className="overflow-x-auto">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead>Tanggal</TableHead>
+                        <TableHead>Pengajar</TableHead>
+                        <TableHead>Kelas</TableHead>
+                        <TableHead>Jam Datang</TableHead>
+                        <TableHead>Jam Keluar</TableHead>
+                        <TableHead>Status</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {isRecapLoading && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground">
+                            Memuat detail rekap...
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {!isRecapLoading && flatRecapRows.length === 0 && (
+                        <TableRow>
+                          <TableCell colSpan={6} className="text-center text-muted-foreground">
+                            Detail rekap belum tersedia.
+                          </TableCell>
+                        </TableRow>
+                      )}
+                      {flatRecapRows.map((item) => (
+                        <TableRow key={`${item.teacherId}-${item.date}`}>
+                          <TableCell>{formatDate(item.date)}</TableCell>
+                          <TableCell className="font-medium text-foreground">{item.fullName}</TableCell>
+                          <TableCell>{item.classes}</TableCell>
+                          <TableCell>{item.checkInTime ?? "-"}</TableCell>
+                          <TableCell>{item.checkOutTime ?? "-"}</TableCell>
+                          <TableCell>{renderStatusBadge(item.status)}</TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
+                </div>
               </CardContent>
             </Card>
           </>
