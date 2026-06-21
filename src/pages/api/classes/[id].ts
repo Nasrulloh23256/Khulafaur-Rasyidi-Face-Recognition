@@ -50,7 +50,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       where: { id },
       include: {
         academicYear: true,
-        semester: true,
         homeroomTeacher: true,
         _count: { select: { students: true } },
       },

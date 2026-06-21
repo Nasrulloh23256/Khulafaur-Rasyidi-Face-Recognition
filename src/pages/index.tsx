@@ -26,7 +26,7 @@ import {
   Users,
 } from "lucide-react";
 
-const brandName = "\u03A9hm Study Club";
+const brandName = "Ohm Study Club Attendance";
 
 const features = [
   {
@@ -169,7 +169,7 @@ const Index = () => {
               <BrandMark className="h-12 w-12" textClassName="text-xl" />
               <div>
                 <h1 className="text-lg font-extrabold leading-tight text-foreground">{brandName}</h1>
-                <p className="text-xs font-medium text-muted-foreground">Portal Absensi Bimbel</p>
+                <p className="text-xs font-medium text-muted-foreground">Attendance Portal</p>
               </div>
             </Link>
 
@@ -223,7 +223,7 @@ const Index = () => {
                   className="max-w-2xl text-4xl font-extrabold leading-tight text-foreground md:text-5xl lg:text-6xl"
                   variants={fadeUp}
                 >
-                  Absensi Bimbel <span className="relative inline-block text-primary">Ceria</span> & Cerdas
+                  Ohm Study Club <span className="relative inline-block text-primary">Attendance</span>
                 </motion.h2>
 
                 <motion.p className="mt-6 max-w-xl text-base leading-8 text-muted-foreground md:text-lg" variants={fadeUp}>
@@ -576,7 +576,7 @@ const Index = () => {
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 md:flex-row">
           <div className="flex items-center gap-3">
             <BrandMark className="h-10 w-10 flex-shrink-0" textClassName="text-lg" />
-            <span className="text-sm font-medium text-muted-foreground">&copy; 2026 {brandName}. Portal Absensi Bimbel.</span>
+            <span className="text-sm font-medium text-muted-foreground">&copy; 2026 {brandName}. Attendance Portal.</span>
           </div>
           <div className="flex items-center gap-6 text-sm font-semibold text-muted-foreground">
             <a href="#beranda" className="transition-colors hover:text-primary">

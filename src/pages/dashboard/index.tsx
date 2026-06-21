@@ -5,7 +5,6 @@ import {
   GraduationCap, 
   ClipboardCheck, 
   BarChart3, 
-  Calendar, 
   Settings, 
   LogOut,
   BookOpen,
@@ -38,7 +37,6 @@ const menuItems = [
   { icon: Camera, label: "Kehadiran", path: "/dashboard/kehadiran" },
   { icon: FileText, label: "Laporan", path: "/dashboard/laporan" },
   { icon: ClipboardCheck, label: "Rekap Absensi", path: "/dashboard/rekap" },
-  { icon: Calendar, label: "Semester", path: "/dashboard/semester" },
   { icon: UserCog, label: "Super Admin", path: "/dashboard/admin" },
 ];
 
@@ -213,9 +211,9 @@ const Dashboard = () => {
           {!sidebarCollapsed && (
             <div className="overflow-hidden">
               <h2 className="font-bold text-sidebar-foreground text-sm leading-tight">
-                {"\u03A9hm Study Club"}
+                Ohm Study Club
               </h2>
-              <p className="text-xs text-sidebar-foreground/70">Absensi Bimbel</p>
+              <p className="text-xs text-sidebar-foreground/70">Attendance</p>
             </div>
           )}
         </div>

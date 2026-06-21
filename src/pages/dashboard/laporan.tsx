@@ -27,14 +27,6 @@ type AcademicYear = {
   isActive: boolean;
 };
 
-type Semester = {
-  id: string;
-  name: "GANJIL" | "GENAP";
-  startDate: string;
-  endDate: string;
-  academicYearId: string;
-};
-
 type ChartItem = {
   bulan: string;
   hadir: number;
@@ -105,10 +97,8 @@ const Laporan = () => {
   const { toast } = useToast();
   const [filterMinggu, setFilterMinggu] = useState("all");
   const [filterBulan, setFilterBulan] = useState("all");
-  const [filterSemester, setFilterSemester] = useState("all");
   const [filterTahunAjaran, setFilterTahunAjaran] = useState("");
   const [years, setYears] = useState<AcademicYear[]>([]);
-  const [semesters, setSemesters] = useState<Semester[]>([]);
   const [summary, setSummary] = useState<ReportSummary>({
     averageAttendance: 0,
     totalStudents: 0,
@@ -124,28 +114,11 @@ const Laporan = () => {
     [years, filterTahunAjaran],
   );
 
-  const semesterOptions = useMemo(
-    () =>
-      semesters.filter((semester) =>
-        filterTahunAjaran ? semester.academicYearId === filterTahunAjaran : true,
-      ),
-    [semesters, filterTahunAjaran],
-  );
-
-  const selectedSemester = useMemo(() => {
-    if (filterSemester === "all") return null;
-    return semesterOptions.find((semester) => semester.id === filterSemester) ?? null;
-  }, [semesterOptions, filterSemester]);
-
   useEffect(() => {
     const loadFilters = async () => {
       try {
-        const [yearRes, semesterRes] = await Promise.all([
-          fetch("/api/academic-years"),
-          fetch("/api/semesters"),
-        ]);
+        const yearRes = await fetch("/api/academic-years");
         const yearData = await yearRes.json();
-        const semesterData = await semesterRes.json();
 
         if (yearRes.ok) {
           setYears(yearData);
@@ -154,25 +127,16 @@ const Laporan = () => {
             setFilterTahunAjaran(activeYear.id);
           }
         }
-        if (semesterRes.ok) {
-          setSemesters(semesterData);
-        }
       } catch (error) {
         toast({
           title: "Gagal memuat filter",
-          description: "Tidak bisa mengambil data tahun ajaran atau semester",
+          description: "Tidak bisa mengambil data tahun ajaran",
           variant: "destructive",
         });
       }
     };
     loadFilters();
   }, [toast]);
-
-  useEffect(() => {
-    if (filterSemester !== "all" && !semesterOptions.some((item) => item.id === filterSemester)) {
-      setFilterSemester("all");
-    }
-  }, [semesterOptions, filterSemester]);
 
   useEffect(() => {
     if (filterBulan === "all" && filterMinggu !== "all") {
@@ -182,8 +146,8 @@ const Laporan = () => {
 
   const dateRange = useMemo(() => {
     if (!selectedYear) return null;
-    const baseStart = selectedSemester ? new Date(selectedSemester.startDate) : new Date(selectedYear.startDate);
-    const baseEnd = selectedSemester ? new Date(selectedSemester.endDate) : new Date(selectedYear.endDate);
+    const baseStart = new Date(selectedYear.startDate);
+    const baseEnd = new Date(selectedYear.endDate);
 
     let rangeStart = startOfDay(baseStart);
     let rangeEnd = endOfDay(baseEnd);
@@ -215,7 +179,7 @@ const Laporan = () => {
     rangeEnd = clampDate(rangeEnd, baseStart, baseEnd);
 
     return { start: rangeStart, end: rangeEnd };
-  }, [selectedYear, selectedSemester, filterBulan, filterMinggu]);
+  }, [selectedYear, filterBulan, filterMinggu]);
 
   useEffect(() => {
     const loadReport = async () => {
@@ -327,19 +291,6 @@ const Laporan = () => {
                   {monthOptions.map((month) => (
                     <SelectItem key={month.value} value={month.value}>
                       {month.label}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <Select value={filterSemester} onValueChange={setFilterSemester}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Semester" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Semester</SelectItem>
-                  {semesterOptions.map((semester) => (
-                    <SelectItem key={semester.id} value={semester.id}>
-                      {semester.name === "GANJIL" ? "Ganjil" : "Genap"}
                     </SelectItem>
                   ))}
                 </SelectContent>

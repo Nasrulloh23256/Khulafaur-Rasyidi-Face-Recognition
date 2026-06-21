@@ -1,4 +1,4 @@
-# Welcome to your Lovable project
+# Ohm Study Club Attendance
 
 ## Project info
 

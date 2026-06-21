@@ -4,7 +4,6 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -51,12 +50,6 @@ type AcademicYear = {
   isActive?: boolean;
 };
 
-type Semester = {
-  id: string;
-  name: "GANJIL" | "GENAP";
-  academicYearId: string;
-};
-
 type Teacher = {
   id: string;
   fullName: string;
@@ -73,18 +66,14 @@ type ClassItem = {
   id: string;
   name: string;
   academicYear: AcademicYear;
-  semester: Semester;
   homeroomTeacher: Teacher | null;
   _count: { students: number };
 };
-
-const formatSemester = (value: "GANJIL" | "GENAP") => (value === "GANJIL" ? "Ganjil" : "Genap");
 
 const Kelas = () => {
   const { toast } = useToast();
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [years, setYears] = useState<AcademicYear[]>([]);
-  const [semesters, setSemesters] = useState<Semester[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [unassignedStudents, setUnassignedStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -100,18 +89,12 @@ const Kelas = () => {
   const [form, setForm] = useState({
     name: "",
     academicYearId: "",
-    semesterId: "",
     homeroomTeacherId: "none",
   });
   const [editForm, setEditForm] = useState({
     homeroomTeacherId: "none",
     studentIds: [] as string[],
   });
-
-  const filteredSemesters = useMemo(
-    () => semesters.filter((semester) => semester.academicYearId === form.academicYearId),
-    [semesters, form.academicYearId],
-  );
 
   const filteredClasses = useMemo(() => {
     if (!searchQuery) return classes;
@@ -140,21 +123,18 @@ const Kelas = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [classRes, yearRes, semesterRes, teacherRes] = await Promise.all([
+      const [classRes, yearRes, teacherRes] = await Promise.all([
         fetch("/api/classes"),
         fetch("/api/academic-years"),
-        fetch("/api/semesters"),
         fetch("/api/teachers"),
       ]);
 
       const classData = await classRes.json();
       const yearData = await yearRes.json();
-      const semesterData = await semesterRes.json();
       const teacherData = await teacherRes.json();
 
       if (classRes.ok) setClasses(classData);
       if (yearRes.ok) setYears(yearData);
-      if (semesterRes.ok) setSemesters(semesterData);
       if (teacherRes.ok) setTeachers(teacherData);
     } catch (error) {
       toast({
@@ -208,17 +188,6 @@ const Kelas = () => {
   }, [years, form.academicYearId]);
 
   useEffect(() => {
-    if (filteredSemesters.length === 0) {
-      setForm((prev) => ({ ...prev, semesterId: "" }));
-      return;
-    }
-    const hasSelected = filteredSemesters.some((semester) => semester.id === form.semesterId);
-    if (!hasSelected) {
-      setForm((prev) => ({ ...prev, semesterId: filteredSemesters[0].id }));
-    }
-  }, [filteredSemesters, form.semesterId]);
-
-  useEffect(() => {
     if (isDialogOpen) {
       loadData();
     }
@@ -263,10 +232,10 @@ const Kelas = () => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!form.name || !form.academicYearId || !form.semesterId) {
+    if (!form.name || !form.academicYearId) {
       toast({
         title: "Data belum lengkap",
-        description: "Nama kelas, tahun ajaran, dan semester wajib diisi",
+        description: "Nama kelas dan tahun ajaran wajib diisi",
         variant: "destructive",
       });
       return;
@@ -280,7 +249,6 @@ const Kelas = () => {
         body: JSON.stringify({
           name: form.name,
           academicYearId: form.academicYearId,
-          semesterId: form.semesterId,
           homeroomTeacherId: form.homeroomTeacherId === "none" ? null : form.homeroomTeacherId,
         }),
       });
@@ -433,23 +401,23 @@ const Kelas = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Semester</Label>
+                  <Label>Tahun Ajaran</Label>
                   <Select
-                    value={form.semesterId}
-                    onValueChange={(value) => setForm((prev) => ({ ...prev, semesterId: value }))}
+                    value={form.academicYearId}
+                    onValueChange={(value) => setForm((prev) => ({ ...prev, academicYearId: value }))}
                   >
                   <SelectTrigger>
-                    <SelectValue placeholder="Pilih semester" />
+                    <SelectValue placeholder="Pilih tahun ajaran" />
                   </SelectTrigger>
                   <SelectContent>
-                    {filteredSemesters.length === 0 ? (
+                    {years.length === 0 ? (
                       <SelectItem value="empty" disabled>
-                        Belum ada semester
+                        Belum ada tahun ajaran
                       </SelectItem>
                     ) : (
-                      filteredSemesters.map((semester) => (
-                        <SelectItem key={semester.id} value={semester.id}>
-                          {formatSemester(semester.name)}
+                      years.map((year) => (
+                        <SelectItem key={year.id} value={year.id}>
+                          {year.name}
                         </SelectItem>
                       ))
                     )}
@@ -542,7 +510,6 @@ const Kelas = () => {
                   <TableHead>Nama Kelas</TableHead>
                   <TableHead>Pengajar</TableHead>
                   <TableHead>Tahun Ajaran</TableHead>
-                  <TableHead>Semester</TableHead>
                   <TableHead className="text-center">Total Siswa</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
@@ -550,14 +517,14 @@ const Kelas = () => {
               <TableBody>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                       Memuat data...
                     </TableCell>
                   </TableRow>
                 )}
                 {!isLoading && filteredClasses.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                       Belum ada kelas.
                     </TableCell>
                   </TableRow>
@@ -568,11 +535,6 @@ const Kelas = () => {
                     <TableCell className="font-semibold text-foreground">{kelas.name}</TableCell>
                     <TableCell>{kelas.homeroomTeacher?.fullName ?? "-"}</TableCell>
                     <TableCell>{kelas.academicYear?.name ?? "-"}</TableCell>
-                    <TableCell>
-                      <Badge className="border-transparent bg-primary/10 text-primary">
-                        {formatSemester(kelas.semester.name)}
-                      </Badge>
-                    </TableCell>
                     <TableCell className="text-center">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-foreground font-semibold text-sm">
                         {kelas._count?.students ?? 0}

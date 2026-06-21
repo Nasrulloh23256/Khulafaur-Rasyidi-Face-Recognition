@@ -7,7 +7,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       orderBy: { name: "asc" },
       include: {
         academicYear: true,
-        semester: true,
         homeroomTeacher: true,
         _count: { select: { students: true } },
       },
@@ -17,7 +16,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === "POST") {
-    const { name, academicYearId, semesterId, homeroomTeacherId } = req.body ?? {};
+    const { name, academicYearId, homeroomTeacherId } = req.body ?? {};
 
     if (typeof name !== "string" || name.trim() === "") {
       return res.status(400).json({ error: "Nama kelas wajib diisi" });
@@ -25,23 +24,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (typeof academicYearId !== "string" || academicYearId.trim() === "") {
       return res.status(400).json({ error: "Tahun ajaran wajib dipilih" });
-    }
-
-    if (typeof semesterId !== "string" || semesterId.trim() === "") {
-      return res.status(400).json({ error: "Semester wajib dipilih" });
-    }
-
-    const semester = await prisma.semester.findUnique({
-      where: { id: semesterId },
-      select: { academicYearId: true },
-    });
-
-    if (!semester) {
-      return res.status(404).json({ error: "Semester tidak ditemukan" });
-    }
-
-    if (semester.academicYearId !== academicYearId) {
-      return res.status(400).json({ error: "Semester tidak sesuai dengan tahun ajaran" });
     }
 
     let resolvedTeacherId: string | null = null;
@@ -61,12 +43,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         data: {
           name: name.trim(),
           academicYearId,
-          semesterId,
           homeroomTeacherId: resolvedTeacherId,
         },
         include: {
           academicYear: true,
-          semester: true,
           homeroomTeacher: true,
           _count: { select: { students: true } },
         },
@@ -76,7 +56,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch (error) {
       const maybeError = error as { code?: string };
       if (maybeError?.code === "P2002") {
-        return res.status(409).json({ error: "Kelas sudah terdaftar untuk tahun ajaran dan semester tersebut" });
+        return res.status(409).json({ error: "Kelas sudah terdaftar untuk tahun ajaran tersebut" });
       }
       return res.status(500).json({ error: "Gagal menyimpan kelas" });
     }
