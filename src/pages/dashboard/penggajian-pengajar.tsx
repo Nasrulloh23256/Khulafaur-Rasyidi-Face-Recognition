@@ -270,13 +270,19 @@ const PenggajianPengajarPage = () => {
               <form onSubmit={handleSaveSetting} className="flex flex-col gap-4">
                 <div className="flex flex-col gap-2">
                   <Label htmlFor="hourly-rate">Tarif Per Jam</Label>
-                  <Input
-                    id="hourly-rate"
-                    type="number"
-                    min="0"
-                    value={hourlyRateInput}
-                    onChange={(event) => setHourlyRateInput(event.target.value)}
-                  />
+                  <div className="relative">
+                    <span className="pointer-events-none absolute left-3 top-1/2 -translate-y-1/2 text-sm font-medium text-muted-foreground">
+                      Rp
+                    </span>
+                    <Input
+                      id="hourly-rate"
+                      type="number"
+                      min="0"
+                      value={hourlyRateInput}
+                      className="pl-10"
+                      onChange={(event) => setHourlyRateInput(event.target.value)}
+                    />
+                  </div>
                 </div>
                 <div className="flex flex-col gap-2">
                   <Label>Sistem Penggajian</Label>
