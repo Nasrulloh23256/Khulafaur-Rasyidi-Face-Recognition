@@ -40,11 +40,36 @@ export const loadFaceModels = async () => {
   modelsLoaded = true;
 };
 
-const getDetectorOptions = (api: typeof import("face-api.js")) => {
-  if (ssdLoaded) {
-    return new api.SsdMobilenetv1Options({ minConfidence: 0.6 });
+const getDetectorOptions = (api: typeof import("face-api.js")) => [
+  new api.TinyFaceDetectorOptions({ inputSize: 416, scoreThreshold: 0.35 }),
+  new api.TinyFaceDetectorOptions({ inputSize: 512, scoreThreshold: 0.25 }),
+  ...(ssdLoaded ? [new api.SsdMobilenetv1Options({ minConfidence: 0.45 })] : []),
+  new api.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.2 }),
+];
+
+const waitForVideoReady = async (input: HTMLVideoElement) => {
+  if (input.readyState >= 2 && input.videoWidth > 0 && input.videoHeight > 0) return true;
+
+  const startedAt = Date.now();
+  while (Date.now() - startedAt < 1800) {
+    await sleep(120);
+    if (input.readyState >= 2 && input.videoWidth > 0 && input.videoHeight > 0) {
+      return true;
+    }
   }
-  return new api.TinyFaceDetectorOptions({ inputSize: 320, scoreThreshold: 0.5 });
+
+  return input.readyState >= 2 && input.videoWidth > 0 && input.videoHeight > 0;
+};
+
+const detectWithOptions = async (
+  api: typeof import("face-api.js"),
+  input: HTMLImageElement | HTMLVideoElement | HTMLCanvasElement,
+  detectorOptions: ReturnType<typeof getDetectorOptions>[number],
+) => {
+  const detection = api.detectSingleFace(input, detectorOptions);
+  return faceLandmarkFullLoaded
+    ? detection.withFaceLandmarks().withFaceDescriptor()
+    : detection.withFaceLandmarks(true).withFaceDescriptor();
 };
 
 export const detectFaceWithDescriptor = async (
@@ -54,10 +79,13 @@ export const detectFaceWithDescriptor = async (
   await loadFaceModels();
 
   const detectorOptions = getDetectorOptions(api);
-  const withDescriptor = await (faceLandmarkFullLoaded
-    ? api.detectSingleFace(input, detectorOptions).withFaceLandmarks()
-    : api.detectSingleFace(input, detectorOptions).withFaceLandmarks(true)
-  ).withFaceDescriptor();
+  let withDescriptor = null;
+
+  for (const options of detectorOptions) {
+    withDescriptor = await detectWithOptions(api, input, options);
+    if (withDescriptor) break;
+  }
+
   if (!withDescriptor) return null;
 
   return {
@@ -82,6 +110,8 @@ export const getStableFaceDescriptor = async (
   options?: { samples?: number; minSamples?: number; intervalMs?: number },
 ) => {
   if (typeof window === "undefined") return null;
+  const videoReady = await waitForVideoReady(input);
+  if (!videoReady) return null;
 
   const samples = options?.samples ?? 6;
   const minSamples = options?.minSamples ?? 3;

@@ -421,9 +421,9 @@ const AbsensiPengajarPage = () => {
     setIsRecognizing(true);
     try {
       const descriptor = await getStableFaceDescriptor(videoRef.current, {
-        samples: 6,
-        minSamples: 3,
-        intervalMs: 150,
+        samples: 10,
+        minSamples: 2,
+        intervalMs: 180,
       });
       if (!descriptor) {
         toast({
