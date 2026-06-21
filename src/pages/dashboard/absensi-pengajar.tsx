@@ -24,6 +24,14 @@ import {
 } from "@/components/ui/dialog";
 import { Input } from "@/components/ui/input";
 import {
+  Select,
+  SelectContent,
+  SelectGroup,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
   Table,
   TableBody,
   TableCell,
@@ -157,6 +165,7 @@ const AbsensiPengajarPage = () => {
   });
   const [recapStart, setRecapStart] = useState(getMonthStartKey);
   const [recapEnd, setRecapEnd] = useState(getLocalDateKey);
+  const [selectedRecapTeacherId, setSelectedRecapTeacherId] = useState("all");
   const [recapRows, setRecapRows] = useState<RecapTeacherRow[]>([]);
   const [recapStats, setRecapStats] = useState<RecapStats>({
     totalTeachers: 0,
@@ -182,9 +191,36 @@ const AbsensiPengajarPage = () => {
     : "Pantau jam datang dan jam pulang semua pengajar";
 
   const formattedSelectedDate = useMemo(() => formatDate(selectedDate), [selectedDate]);
+  const visibleRecapRows = useMemo(
+    () =>
+      selectedRecapTeacherId === "all"
+        ? recapRows
+        : recapRows.filter((teacher) => teacher.id === selectedRecapTeacherId),
+    [recapRows, selectedRecapTeacherId],
+  );
+  const filteredRecapStats = useMemo(() => {
+    const presentSlots = visibleRecapRows.reduce((total, teacher) => total + teacher.totals.present, 0);
+    const completeSlots = visibleRecapRows.reduce((total, teacher) => total + teacher.totals.complete, 0);
+    const missingCheckOut = visibleRecapRows.reduce(
+      (total, teacher) => total + teacher.totals.missingCheckOut,
+      0,
+    );
+    const absentSlots = visibleRecapRows.reduce((total, teacher) => total + teacher.totals.absent, 0);
+    const totalSlots = visibleRecapRows.length * recapStats.totalDays;
+
+    return {
+      totalTeachers: visibleRecapRows.length,
+      totalDays: recapStats.totalDays,
+      totalSlots,
+      presentSlots,
+      completeSlots,
+      missingCheckOut,
+      absentSlots,
+    };
+  }, [recapStats.totalDays, visibleRecapRows]);
   const flatRecapRows = useMemo(
     () =>
-      recapRows.flatMap((teacher) =>
+      visibleRecapRows.flatMap((teacher) =>
         teacher.daily.map((item) => ({
           teacherId: teacher.id,
           fullName: teacher.fullName,
@@ -196,7 +232,7 @@ const AbsensiPengajarPage = () => {
           status: item.status,
         })),
       ),
-    [recapRows],
+    [visibleRecapRows],
   );
 
   const loadTeacherAttendance = async (userId: string) => {
@@ -314,6 +350,15 @@ const AbsensiPengajarPage = () => {
       loadData(currentUser);
     }
   }, [selectedDate]);
+
+  useEffect(() => {
+    if (
+      selectedRecapTeacherId !== "all" &&
+      !recapRows.some((teacher) => teacher.id === selectedRecapTeacherId)
+    ) {
+      setSelectedRecapTeacherId("all");
+    }
+  }, [recapRows, selectedRecapTeacherId]);
 
   const startCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -762,7 +807,22 @@ const AbsensiPengajarPage = () => {
                       {formatDate(recapStart)} sampai {formatDate(recapEnd)}
                     </p>
                   </div>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[160px_160px_auto_auto] gap-2">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-[220px_160px_160px_auto_auto] gap-2">
+                    <Select value={selectedRecapTeacherId} onValueChange={setSelectedRecapTeacherId}>
+                      <SelectTrigger className="w-full" aria-label="Filter pengajar">
+                        <SelectValue placeholder="Semua Pengajar" />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectGroup>
+                          <SelectItem value="all">Semua Pengajar</SelectItem>
+                          {recapRows.map((teacher) => (
+                            <SelectItem key={teacher.id} value={teacher.id}>
+                              {teacher.fullName}
+                            </SelectItem>
+                          ))}
+                        </SelectGroup>
+                      </SelectContent>
+                    </Select>
                     <Input
                       type="date"
                       value={recapStart}
@@ -798,23 +858,23 @@ const AbsensiPengajarPage = () => {
                 <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-3">
                   <div className="rounded-xl bg-muted/50 p-4">
                     <p className="text-sm text-muted-foreground">Hari Rekap</p>
-                    <p className="text-2xl font-bold text-foreground">{recapStats.totalDays}</p>
+                    <p className="text-2xl font-bold text-foreground">{filteredRecapStats.totalDays}</p>
                   </div>
                   <div className="rounded-xl bg-muted/50 p-4">
                     <p className="text-sm text-muted-foreground">Total Slot</p>
-                    <p className="text-2xl font-bold text-foreground">{recapStats.totalSlots}</p>
+                    <p className="text-2xl font-bold text-foreground">{filteredRecapStats.totalSlots}</p>
                   </div>
                   <div className="rounded-xl bg-success/10 p-4">
                     <p className="text-sm text-muted-foreground">Hadir</p>
-                    <p className="text-2xl font-bold text-success">{recapStats.presentSlots}</p>
+                    <p className="text-2xl font-bold text-success">{filteredRecapStats.presentSlots}</p>
                   </div>
                   <div className="rounded-xl bg-warning/10 p-4">
                     <p className="text-sm text-muted-foreground">Belum Pulang</p>
-                    <p className="text-2xl font-bold text-warning">{recapStats.missingCheckOut}</p>
+                    <p className="text-2xl font-bold text-warning">{filteredRecapStats.missingCheckOut}</p>
                   </div>
                   <div className="rounded-xl bg-muted p-4">
                     <p className="text-sm text-muted-foreground">Tidak Absen</p>
-                    <p className="text-2xl font-bold text-foreground">{recapStats.absentSlots}</p>
+                    <p className="text-2xl font-bold text-foreground">{filteredRecapStats.absentSlots}</p>
                   </div>
                 </div>
 
@@ -839,17 +899,17 @@ const AbsensiPengajarPage = () => {
                           </TableCell>
                         </TableRow>
                       )}
-                      {!isRecapLoading && recapRows.length === 0 && (
+                      {!isRecapLoading && visibleRecapRows.length === 0 && (
                         <TableRow>
                           <TableCell colSpan={7} className="text-center text-muted-foreground">
                             Belum ada rekap untuk rentang ini.
                           </TableCell>
                         </TableRow>
                       )}
-                      {recapRows.map((teacher) => {
+                      {visibleRecapRows.map((teacher) => {
                         const attendancePercent =
-                          recapStats.totalDays > 0
-                            ? Math.round((teacher.totals.present / recapStats.totalDays) * 100)
+                          filteredRecapStats.totalDays > 0
+                            ? Math.round((teacher.totals.present / filteredRecapStats.totalDays) * 100)
                             : 0;
                         return (
                           <TableRow key={teacher.id}>
