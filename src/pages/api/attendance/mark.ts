@@ -1,5 +1,21 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { saveBase64Image } from "@/lib/image-storage";
+import { ensureStudentAttendanceColumns } from "@/lib/student-attendance";
+
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "6mb",
+    },
+  },
+};
+
+type AttendanceLocation = {
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+};
 
 const startOfDay = (value: Date) => {
   const date = new Date(value);
@@ -9,13 +25,36 @@ const startOfDay = (value: Date) => {
 
 const allowedStatus = ["PRESENT", "ABSENT", "SICK", "PERMIT"] as const;
 
+const normalizeLocation = (value: unknown): AttendanceLocation | null => {
+  if (!value || typeof value !== "object") return null;
+  const location = value as { latitude?: unknown; longitude?: unknown; accuracy?: unknown };
+  const latitude = Number(location.latitude);
+  const longitude = Number(location.longitude);
+  const accuracy = location.accuracy === null || location.accuracy === undefined ? null : Number(location.accuracy);
+
+  if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) return null;
+  if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) return null;
+  if (accuracy !== null && (!Number.isFinite(accuracy) || accuracy < 0)) return null;
+
+  return { latitude, longitude, accuracy };
+};
+
+const saveAttendancePhoto = async (value: unknown) => {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error("INVALID_FORMAT");
+  }
+  return saveBase64Image(value.trim(), { folder: "uploads/student-attendance" });
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await ensureStudentAttendanceColumns();
+
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { studentId, classId, status } = req.body ?? {};
+  const { studentId, classId, status, photo, location } = req.body ?? {};
 
   if (typeof studentId !== "string" || studentId.trim() === "") {
     return res.status(400).json({ error: "Siswa tidak valid" });
@@ -59,6 +98,25 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(409).json({ error: "Siswa sudah absen hari ini" });
   }
 
+  const isPresent = resolvedStatus === "PRESENT";
+  const attendanceLocation = isPresent ? normalizeLocation(location) : null;
+  if (isPresent && !attendanceLocation) {
+    return res.status(400).json({ error: "Lokasi absensi wajib diaktifkan dan harus valid" });
+  }
+
+  let photoUrl: string | null = null;
+  if (isPresent) {
+    try {
+      photoUrl = await saveAttendancePhoto(photo);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "INVALID_IMAGE";
+      if (message === "IMAGE_TOO_LARGE") {
+        return res.status(413).json({ error: "Ukuran foto maksimal 2MB" });
+      }
+      return res.status(400).json({ error: "Foto absensi wajib diambil dari kamera" });
+    }
+  }
+
   let attendance;
   try {
     attendance = await prisma.attendance.create({
@@ -67,7 +125,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         classId,
         status: resolvedStatus,
         date,
-        checkInTime: new Date(),
+        checkInTime: isPresent ? new Date() : null,
+        checkInLatitude: attendanceLocation?.latitude ?? null,
+        checkInLongitude: attendanceLocation?.longitude ?? null,
+        checkInAccuracy: attendanceLocation?.accuracy ?? null,
+        checkInPhotoUrl: photoUrl,
       },
     });
   } catch (error) {

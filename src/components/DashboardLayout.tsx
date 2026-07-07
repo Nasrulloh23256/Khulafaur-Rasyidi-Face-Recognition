@@ -29,7 +29,6 @@ const adminMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: BookOpen, label: "Kelas", path: "/dashboard/kelas" },
   { icon: GraduationCap, label: "Siswa", path: "/dashboard/siswa" },
-  { icon: Camera, label: "Enroll Wajah", path: "/dashboard/enroll-wajah" },
   { icon: Users, label: "Pengajar", path: "/dashboard/wali-kelas" },
   { icon: UserCheck, label: "Absensi Pengajar", path: "/dashboard/absensi-pengajar" },
   { icon: Wallet, label: "Penggajian", path: "/dashboard/penggajian-pengajar" },

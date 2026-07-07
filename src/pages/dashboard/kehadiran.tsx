@@ -1,21 +1,14 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import {
+  AlertCircle,
   Camera,
   Check,
-  X,
-  AlertCircle,
   Clock,
   Users,
+  X,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -24,14 +17,28 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import DashboardLayout from "@/components/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
-import { getStableFaceDescriptor } from "@/lib/face-api";
 
 type ClassItem = {
   id: string;
   name: string;
 };
+
+type AttendanceLocation = {
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+};
+
+type AttendanceStatus = "PRESENT" | "ABSENT" | "SICK" | "PERMIT" | null;
 
 type AttendanceStudent = {
   id: string;
@@ -39,17 +46,10 @@ type AttendanceStudent = {
   fullName: string;
   gender: "MALE" | "FEMALE";
   faceImageUrl: string | null;
-  hasFace: boolean;
-  status: "PRESENT" | "ABSENT" | "SICK" | "PERMIT" | null;
+  status: AttendanceStatus;
   checkInTime: string | null;
-};
-
-type RecognizeMatch = {
-  id: string;
-  fullName: string;
-  studentNumber: string | null;
-  gender: "MALE" | "FEMALE";
-  className: string | null;
+  checkInPhotoUrl: string | null;
+  checkInLocation: AttendanceLocation | null;
 };
 
 const statusLabel: Record<string, string> = {
@@ -60,17 +60,28 @@ const statusLabel: Record<string, string> = {
   UNMARKED: "Belum",
 };
 
+const formatLocationText = (location: AttendanceLocation | null | undefined) => {
+  if (!location) return "-";
+  const coordinates = `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`;
+  if (typeof location.accuracy === "number") {
+    return `${coordinates} (${Math.round(location.accuracy)} m)`;
+  }
+  return coordinates;
+};
+
+const getLocationMapUrl = (location: AttendanceLocation | null | undefined) =>
+  location ? `https://www.google.com/maps?q=${location.latitude},${location.longitude}` : "#";
+
 const Kehadiran = () => {
   const { toast } = useToast();
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [attendanceData, setAttendanceData] = useState<AttendanceStudent[]>([]);
+  const [selectedStudent, setSelectedStudent] = useState<AttendanceStudent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [isRecognizing, setIsRecognizing] = useState(false);
-  const [lastMatch, setLastMatch] = useState<RecognizeMatch | null>(null);
-  const [isTeacherView, setIsTeacherView] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
@@ -96,11 +107,6 @@ const Kehadiran = () => {
     return { total, hadir, sakit, izin };
   }, [attendanceData]);
 
-  const registeredCount = useMemo(
-    () => attendanceData.filter((student) => student.hasFace).length,
-    [attendanceData],
-  );
-
   const loadClasses = async () => {
     try {
       const response = await fetch("/api/classes");
@@ -109,9 +115,12 @@ const Kehadiran = () => {
         setClasses(data);
         if (!selectedClassId && data.length > 0) {
           setSelectedClassId(data[0].id);
+        } else if (data.length === 0) {
+          setIsLoading(false);
         }
       }
-    } catch (error) {
+    } catch {
+      setIsLoading(false);
       toast({
         title: "Gagal memuat kelas",
         description: "Tidak bisa mengambil data kelas",
@@ -146,36 +155,12 @@ const Kehadiran = () => {
   }, []);
 
   useEffect(() => {
-    if (typeof window === "undefined") return;
-    const stored = window.localStorage.getItem("auth_user");
-    if (!stored) return;
-    try {
-      const parsed = JSON.parse(stored) as { role?: string };
-      setIsTeacherView(parsed?.role === "TEACHER");
-    } catch {
-      setIsTeacherView(false);
-    }
-  }, []);
-
-  useEffect(() => {
     if (selectedClassId) {
+      setSelectedStudent(null);
+      setIsCameraOpen(false);
       loadAttendance(selectedClassId);
     }
   }, [selectedClassId]);
-
-  useEffect(() => {
-    setLastMatch(null);
-    if (!isTeacherView) {
-      setIsCameraOpen(false);
-    }
-  }, [selectedClassId, isTeacherView]);
-
-  useEffect(() => {
-    if (isTeacherView) {
-      setIsCameraOpen(true);
-    }
-  }, [isTeacherView]);
-
 
   const startCamera = async () => {
     if (!navigator.mediaDevices?.getUserMedia) {
@@ -184,6 +169,7 @@ const Kehadiran = () => {
         description: "Browser tidak mendukung akses kamera.",
         variant: "destructive",
       });
+      setIsCameraOpen(false);
       return;
     }
 
@@ -194,12 +180,13 @@ const Kehadiran = () => {
         videoRef.current.srcObject = stream;
         await videoRef.current.play();
       }
-    } catch (error) {
+    } catch {
       toast({
         title: "Gagal membuka kamera",
         description: "Periksa izin kamera di browser.",
         variant: "destructive",
       });
+      setIsCameraOpen(false);
     }
   };
 
@@ -217,8 +204,60 @@ const Kehadiran = () => {
     return () => stopCamera();
   }, [isCameraOpen]);
 
-  const handleStatusChange = async (studentId: string, status: AttendanceStudent["status"]) => {
-    if (!selectedClassId || !status) return false;
+  const getCurrentLocation = () =>
+    new Promise<AttendanceLocation>((resolve, reject) => {
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        reject(new Error("Browser tidak mendukung akses lokasi."));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null,
+          });
+        },
+        () => reject(new Error("Izin lokasi ditolak atau lokasi tidak terbaca.")),
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        },
+      );
+    });
+
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      throw new Error("Kamera belum siap mengambil foto.");
+    }
+
+    const maxWidth = 1280;
+    const scale = Math.min(1, maxWidth / video.videoWidth);
+    const width = Math.round(video.videoWidth * scale);
+    const height = Math.round(video.videoHeight * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Browser tidak bisa mengambil foto dari kamera.");
+    }
+
+    context.translate(width, 0);
+    context.scale(-1, 1);
+    context.drawImage(video, 0, 0, width, height);
+    return canvas.toDataURL("image/jpeg", 0.72);
+  };
+
+  const handleStatusChange = async (
+    studentId: string,
+    status: Exclude<AttendanceStatus, null>,
+    evidence?: { photo: string; location: AttendanceLocation },
+  ) => {
+    if (!selectedClassId) return false;
 
     setIsSaving(true);
     try {
@@ -229,24 +268,18 @@ const Kehadiran = () => {
           studentId,
           classId: selectedClassId,
           status,
+          photo: evidence?.photo,
+          location: evidence?.location,
         }),
       });
       const data = await response.json();
       if (!response.ok) {
         const message = data?.error ?? "Gagal menyimpan absensi";
-        if (response.status === 409) {
-          toast({
-            title: "Sudah absen",
-            description: message,
-            variant: "destructive",
-          });
-        } else {
-          toast({
-            title: "Gagal menyimpan",
-            description: message,
-            variant: "destructive",
-          });
-        }
+        toast({
+          title: response.status === 409 ? "Sudah absen" : "Gagal menyimpan",
+          description: message,
+          variant: "destructive",
+        });
         return false;
       }
       await loadAttendance(selectedClassId);
@@ -264,7 +297,7 @@ const Kehadiran = () => {
     }
   };
 
-  const handleRecognize = async () => {
+  const openPhotoAttendance = (student: AttendanceStudent) => {
     if (!selectedClassId) {
       toast({
         title: "Kelas belum dipilih",
@@ -273,86 +306,44 @@ const Kehadiran = () => {
       });
       return;
     }
-    if (!videoRef.current) return;
-
-    if (registeredCount === 0) {
+    if (student.status) {
       toast({
-        title: "Belum ada wajah terdaftar",
-        description: "Enroll wajah siswa terlebih dahulu.",
+        title: "Sudah diabsen",
+        description: `${student.fullName} sudah memiliki status hari ini.`,
         variant: "destructive",
       });
       return;
     }
 
-    setIsRecognizing(true);
-    setLastMatch(null);
+    setSelectedStudent(student);
+    setIsCameraOpen(true);
+  };
+
+  const handlePhotoAttendance = async () => {
+    if (!selectedStudent) return;
+
+    setIsCapturing(true);
     try {
-      const descriptor = await getStableFaceDescriptor(videoRef.current, {
-        samples: 6,
-        minSamples: 3,
-        intervalMs: 150,
-      });
-      if (!descriptor) {
-        toast({
-          title: "Wajah tidak terdeteksi",
-          description: "Arahkan wajah ke kamera dengan pencahayaan cukup.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const response = await fetch("/api/attendance/recognize", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          classId: selectedClassId,
-          descriptor: Array.from(descriptor),
-        }),
-      });
-      const data = await response.json();
-      if (!response.ok) {
-        const message = data?.error ?? "Gagal mengenali wajah";
-        if (response.status === 409) {
-          if (data?.match) {
-            setLastMatch(data.match);
-          }
-          toast({
-            title: "Sudah absen",
-            description: data?.match?.fullName
-              ? `${data.match.fullName} sudah absen hari ini.`
-              : message,
-            variant: "destructive",
-          });
-          return;
-        }
-        throw new Error(message);
-      }
-
-      if (!data?.match) {
-        toast({
-          title: "Wajah tidak dikenali",
-          description: "Pastikan wajah sudah terdaftar.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      setLastMatch(data.match);
-      const saved = await handleStatusChange(data.match.id, "PRESENT");
+      const photo = capturePhoto();
+      const location = await getCurrentLocation();
+      const saved = await handleStatusChange(selectedStudent.id, "PRESENT", { photo, location });
       if (!saved) return;
+
       toast({
         title: "Absensi berhasil",
-        description: `${data.match.fullName} terdeteksi hadir.`,
+        description: `${selectedStudent.fullName} tercatat hadir dengan foto dan lokasi.`,
       });
+      setIsCameraOpen(false);
+      setSelectedStudent(null);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Gagal mengenali wajah";
+      const message = error instanceof Error ? error.message : "Gagal mengambil foto absensi";
       toast({
-        title: "Gagal mengenali",
+        title: "Gagal menyimpan absensi",
         description: message,
         variant: "destructive",
       });
     } finally {
-      setIsRecognizing(false);
+      setIsCapturing(false);
     }
   };
 
@@ -371,13 +362,44 @@ const Kehadiran = () => {
     }
   };
 
+  const renderLocationLink = (location: AttendanceLocation | null | undefined) => {
+    if (!location) return <span>-</span>;
+    return (
+      <a
+        href={getLocationMapUrl(location)}
+        target="_blank"
+        rel="noreferrer"
+        className="font-medium text-primary hover:underline"
+      >
+        Lihat Maps
+        <span className="block text-[11px] font-normal text-muted-foreground">
+          {formatLocationText(location)}
+        </span>
+      </a>
+    );
+  };
+
+  const renderPhotoLink = (url: string | null | undefined) => {
+    if (!url) return <span>-</span>;
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="font-medium text-primary hover:underline"
+      >
+        Lihat Foto
+      </a>
+    );
+  };
+
   return (
-    <DashboardLayout title="Absensi Kehadiran" subtitle="Rekam kehadiran siswa dengan face recognition">
+    <DashboardLayout title="Absensi Kehadiran" subtitle="Rekam kehadiran siswa dengan foto dan lokasi">
       <div className="space-y-6">
-        <div className="flex flex-col sm:flex-row gap-4 justify-between items-start sm:items-center">
-          <div className="flex items-center gap-4">
+        <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+          <div className="flex flex-col gap-3 sm:flex-row sm:items-center">
             <Select value={selectedClassId} onValueChange={setSelectedClassId}>
-              <SelectTrigger className="w-[180px]">
+              <SelectTrigger className="w-full sm:w-[180px]">
                 <SelectValue placeholder="Pilih Kelas" />
               </SelectTrigger>
               <SelectContent>
@@ -395,94 +417,17 @@ const Kehadiran = () => {
               </SelectContent>
             </Select>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
-              <Clock className="w-4 h-4" />
+              <Clock className="h-4 w-4" />
               <span>{formattedDate}</span>
             </div>
           </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              variant="outline"
-              className="gap-2"
-              onClick={() => window.open("/dashboard/enroll-wajah", "_self")}
-            >
-              <Camera className="w-4 h-4" />
-              Enroll Wajah
-            </Button>
-            {!isTeacherView && (
-              <Button
-                variant="gradient"
-                className="gap-2"
-                onClick={() => {
-                  setLastMatch(null);
-                  setIsCameraOpen(true);
-                }}
-                disabled={registeredCount === 0}
-              >
-                <Camera className="w-4 h-4" />
-                Scan Wajah
-              </Button>
-            )}
-          </div>
         </div>
 
-        {isTeacherView && (
+        <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <Card className="border-0 shadow-card">
-            <CardHeader>
-              <CardTitle className="flex items-center gap-2">
-                <Camera className="w-5 h-5" />
-                Kamera Absensi
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid lg:grid-cols-[2fr_1fr] gap-4">
-                <div className="aspect-[4/3] sm:aspect-video w-full rounded-lg bg-muted overflow-hidden">
-                  <video
-                    ref={videoRef}
-                    className="w-full h-full object-cover"
-                    style={{ transform: "scaleX(-1)" }}
-                    muted
-                    playsInline
-                  />
-                </div>
-                <div className="space-y-3">
-                  <div className="rounded-lg border border-border p-3">
-                    <p className="text-sm font-medium text-foreground">Hasil Deteksi</p>
-                    {lastMatch ? (
-                      <div className="mt-2 space-y-1 text-sm text-muted-foreground">
-                        <p className="font-semibold text-foreground">{lastMatch.fullName}</p>
-                        <p>NIS: {lastMatch.studentNumber ?? "-"}</p>
-                        <p>Kelas: {lastMatch.className ?? "-"}</p>
-                      </div>
-                    ) : (
-                      <p className="mt-2 text-sm text-muted-foreground">Belum ada wajah terdeteksi.</p>
-                    )}
-                  </div>
-                  <div className="text-sm text-muted-foreground">
-                    {registeredCount === 0
-                      ? "Belum ada wajah terdaftar."
-                      : isRecognizing
-                        ? "Mendeteksi..."
-                        : "Siap mendeteksi."}
-                  </div>
-                  <Button
-                    variant="gradient"
-                    className="w-full"
-                    onClick={handleRecognize}
-                    disabled={isRecognizing || registeredCount === 0}
-                  >
-                    {isRecognizing ? "Mendeteksi..." : "Scan Wajah"}
-                  </Button>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
-        )}
-
-        <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-          <Card className="border-0 shadow-card">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl gradient-primary flex items-center justify-center">
-                <Users className="w-6 h-6 text-primary-foreground" />
+            <CardContent className="flex items-center gap-4 p-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl gradient-primary">
+                <Users className="h-6 w-6 text-primary-foreground" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-foreground">{stats.total}</p>
@@ -491,9 +436,9 @@ const Kehadiran = () => {
             </CardContent>
           </Card>
           <Card className="border-0 shadow-card">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-success/10 flex items-center justify-center">
-                <Check className="w-6 h-6 text-success" />
+            <CardContent className="flex items-center gap-4 p-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-success/10">
+                <Check className="h-6 w-6 text-success" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-success">{stats.hadir}</p>
@@ -502,9 +447,9 @@ const Kehadiran = () => {
             </CardContent>
           </Card>
           <Card className="border-0 shadow-card">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-destructive/10 flex items-center justify-center">
-                <X className="w-6 h-6 text-destructive" />
+            <CardContent className="flex items-center gap-4 p-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-destructive/10">
+                <X className="h-6 w-6 text-destructive" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-destructive">{stats.sakit}</p>
@@ -513,9 +458,9 @@ const Kehadiran = () => {
             </CardContent>
           </Card>
           <Card className="border-0 shadow-card">
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="w-12 h-12 rounded-xl bg-warning/10 flex items-center justify-center">
-                <AlertCircle className="w-6 h-6 text-warning" />
+            <CardContent className="flex items-center gap-4 p-4">
+              <div className="flex h-12 w-12 items-center justify-center rounded-xl bg-warning/10">
+                <AlertCircle className="h-6 w-6 text-warning" />
               </div>
               <div>
                 <p className="text-2xl font-bold text-warning">{stats.izin}</p>
@@ -530,7 +475,7 @@ const Kehadiran = () => {
             <CardTitle>Daftar Kehadiran - {selectedClass?.name ?? "-"}</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {isLoading && (
                 <p className="text-sm text-muted-foreground">Memuat data absensi...</p>
               )}
@@ -539,43 +484,46 @@ const Kehadiran = () => {
               )}
               {attendanceData.map((siswa) => {
                 const currentStatus = siswa.status ?? "UNMARKED";
+                const isAlreadyMarked = currentStatus !== "UNMARKED";
                 return (
-                  <Card key={siswa.id} className="border shadow-sm hover:shadow-card transition-all">
+                  <Card key={siswa.id} className="border shadow-sm transition-all hover:shadow-card">
                     <CardContent className="p-4">
                       <div className="flex items-start gap-4">
-                      <div className="w-20 h-20 rounded-xl bg-muted flex items-center justify-center flex-shrink-0 overflow-hidden">
+                        <div className="flex h-20 w-20 flex-shrink-0 items-center justify-center overflow-hidden rounded-xl bg-muted">
                           {siswa.faceImageUrl ? (
                             <img
                               src={siswa.faceImageUrl}
                               alt={`Foto ${siswa.fullName}`}
-                              className="w-full h-full object-cover"
+                              className="h-full w-full object-cover"
                             />
                           ) : (
-                            <div className="w-full h-full gradient-primary flex items-center justify-center text-primary-foreground font-bold text-2xl">
+                            <div className="flex h-full w-full items-center justify-center gradient-primary text-2xl font-bold text-primary-foreground">
                               {siswa.fullName.charAt(0)}
                             </div>
                           )}
                         </div>
 
-                        <div className="flex-1 min-w-0">
-                          <h4 className="font-semibold text-foreground truncate">{siswa.fullName}</h4>
+                        <div className="min-w-0 flex-1">
+                          <h4 className="truncate font-semibold text-foreground">{siswa.fullName}</h4>
                           <p className="text-sm text-muted-foreground">NIS: {siswa.studentNumber ?? "-"}</p>
                           <p className="text-sm text-muted-foreground">
                             {siswa.gender === "MALE" ? "Laki-laki" : "Perempuan"}
-                          </p>
-                          <p className="text-xs text-muted-foreground">
-                            {siswa.hasFace ? "Wajah terdaftar" : "Wajah belum terdaftar"}
                           </p>
 
                           <div className="mt-3 space-y-2">
                             <Select
                               value={currentStatus}
+                              disabled={isSaving || isAlreadyMarked}
                               onValueChange={(value) => {
                                 if (value === "UNMARKED") return;
-                                handleStatusChange(siswa.id, value as AttendanceStudent["status"]);
+                                if (value === "PRESENT") {
+                                  openPhotoAttendance(siswa);
+                                  return;
+                                }
+                                handleStatusChange(siswa.id, value as Exclude<AttendanceStatus, null>);
                               }}
                             >
-                              <SelectTrigger className={`w-full h-9 ${getStatusColor(currentStatus)}`}>
+                              <SelectTrigger className={`h-9 w-full ${getStatusColor(currentStatus)}`}>
                                 <SelectValue />
                               </SelectTrigger>
                               <SelectContent>
@@ -584,29 +532,44 @@ const Kehadiran = () => {
                                 </SelectItem>
                                 <SelectItem value="PRESENT">
                                   <span className="flex items-center gap-2">
-                                    <Check className="w-4 h-4 text-success" /> Hadir
+                                    <Check className="h-4 w-4 text-success" /> Hadir
                                   </span>
                                 </SelectItem>
                                 <SelectItem value="SICK">
                                   <span className="flex items-center gap-2">
-                                    <X className="w-4 h-4 text-destructive" /> Sakit
+                                    <X className="h-4 w-4 text-destructive" /> Sakit
                                   </span>
                                 </SelectItem>
                                 <SelectItem value="PERMIT">
                                   <span className="flex items-center gap-2">
-                                    <AlertCircle className="w-4 h-4 text-warning" /> Izin
+                                    <AlertCircle className="h-4 w-4 text-warning" /> Izin
                                   </span>
                                 </SelectItem>
                                 <SelectItem value="ABSENT">
                                   <span className="flex items-center gap-2">
-                                    <X className="w-4 h-4 text-muted-foreground" /> Alpha
+                                    <X className="h-4 w-4 text-muted-foreground" /> Alpha
                                   </span>
                                 </SelectItem>
                               </SelectContent>
                             </Select>
-                            <p className="text-xs text-muted-foreground">
-                              Jam masuk: {siswa.checkInTime ?? "-"}
-                            </p>
+
+                            <Button
+                              variant="outline"
+                              size="sm"
+                              className="w-full gap-2"
+                              onClick={() => openPhotoAttendance(siswa)}
+                              disabled={isSaving || isAlreadyMarked}
+                            >
+                              <Camera className="h-4 w-4" />
+                              Ambil Foto Hadir
+                            </Button>
+
+                            <div className="space-y-1 text-xs text-muted-foreground">
+                              <p>Status: {statusLabel[currentStatus]}</p>
+                              <p>Jam masuk: {siswa.checkInTime ?? "-"}</p>
+                              <div>Foto: {renderPhotoLink(siswa.checkInPhotoUrl)}</div>
+                              <div>Lokasi: {renderLocationLink(siswa.checkInLocation)}</div>
+                            </div>
                           </div>
                         </div>
                       </div>
@@ -617,81 +580,63 @@ const Kehadiran = () => {
             </div>
           </CardContent>
         </Card>
-
-        <div className="flex justify-end">
-          <Button variant="gradient" size="lg" disabled={isSaving}>
-            {isSaving ? "Menyimpan..." : "Simpan Absensi"}
-          </Button>
-        </div>
       </div>
 
-      {!isTeacherView && (
-        <Dialog
-          open={isCameraOpen}
-          onOpenChange={(open) => {
-            setIsCameraOpen(open);
-            if (!open) {
-              setLastMatch(null);
-            }
-          }}
-        >
-          <DialogContent className="max-w-2xl">
-            <DialogHeader>
-              <DialogTitle>Face Recognition</DialogTitle>
-              <DialogDescription>Arahkan wajah ke kamera untuk absensi.</DialogDescription>
-            </DialogHeader>
-            <div className="space-y-4">
-              <div className="aspect-[4/3] sm:aspect-video w-full rounded-lg bg-muted overflow-hidden">
-                <video
-                  ref={videoRef}
-                  className="w-full h-full object-cover"
-                  style={{ transform: "scaleX(-1)" }}
-                  muted
-                  playsInline
-                />
-              </div>
-              <div className="grid sm:grid-cols-[1fr_auto] gap-3 items-center text-sm text-muted-foreground">
-                <div>
-                  <p className="text-xs text-muted-foreground">Hasil deteksi</p>
-                  <p className="mt-1 text-sm font-semibold text-foreground">
-                    {lastMatch?.fullName ?? "Belum ada wajah terdeteksi"}
-                  </p>
-                  <p className="text-xs text-muted-foreground">
-                    {lastMatch
-                      ? `NIS: ${lastMatch.studentNumber ?? "-"} - Kelas: ${lastMatch.className ?? "-"}`
-                      : "Pastikan wajah terlihat jelas di kamera."}
-                  </p>
-                </div>
-                <div className="text-right">
-                  <span>
-                    Status:{" "}
-                    {registeredCount === 0
-                      ? "Belum ada wajah terdaftar"
-                      : isRecognizing
-                        ? "Mengambil beberapa frame..."
-                        : "Siap"}
-                  </span>
-                </div>
-              </div>
-              <div className="flex items-center justify-between text-sm text-muted-foreground">
-                <span>Kelas aktif: {selectedClass?.name ?? "-"}</span>
-              </div>
+      <Dialog
+        open={isCameraOpen}
+        onOpenChange={(open) => {
+          setIsCameraOpen(open);
+          if (!open) {
+            setSelectedStudent(null);
+          }
+        }}
+      >
+        <DialogContent className="max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Ambil Foto Kehadiran</DialogTitle>
+            <DialogDescription>
+              Ambil foto langsung dan aktifkan lokasi untuk mencatat kehadiran siswa.
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="aspect-[4/3] w-full overflow-hidden rounded-lg bg-muted sm:aspect-video">
+              <video
+                ref={videoRef}
+                className="h-full w-full object-cover"
+                style={{ transform: "scaleX(-1)" }}
+                muted
+                playsInline
+              />
             </div>
-            <DialogFooter>
-              <Button variant="outline" onClick={() => setIsCameraOpen(false)}>
-                Tutup
-              </Button>
-              <Button
-                variant="gradient"
-                onClick={handleRecognize}
-                disabled={isRecognizing || registeredCount === 0}
-              >
-                {isRecognizing ? "Mendeteksi..." : "Scan Wajah"}
-              </Button>
-            </DialogFooter>
-          </DialogContent>
-        </Dialog>
-      )}
+            <div className="rounded-lg border border-border p-3 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">{selectedStudent?.fullName ?? "Siswa"}</p>
+              <p>
+                {isCapturing || isSaving
+                  ? "Menyimpan foto dan lokasi absensi..."
+                  : "Pastikan foto terlihat jelas dan pencahayaan cukup."}
+              </p>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button
+              variant="outline"
+              onClick={() => setIsCameraOpen(false)}
+              disabled={isCapturing || isSaving}
+            >
+              Tutup
+            </Button>
+            <Button
+              variant="gradient"
+              className="gap-2"
+              onClick={handlePhotoAttendance}
+              disabled={isCapturing || isSaving || !selectedStudent}
+            >
+              <Camera className="h-4 w-4" />
+              {isCapturing || isSaving ? "Menyimpan..." : "Simpan Hadir"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </DashboardLayout>
   );
 };

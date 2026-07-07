@@ -1,5 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import {
+  ensureStudentAttendanceColumns,
+  formatStudentAttendanceTime,
+  serializeStudentAttendanceLocation,
+} from "@/lib/student-attendance";
 
 const startOfDay = (value: Date) => {
   const date = new Date(value);
@@ -7,14 +12,9 @@ const startOfDay = (value: Date) => {
   return date;
 };
 
-const formatTime = (value: Date | null) => {
-  if (!value) return null;
-  const hours = String(value.getHours()).padStart(2, "0");
-  const minutes = String(value.getMinutes()).padStart(2, "0");
-  return `${hours}:${minutes}`;
-};
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await ensureStudentAttendanceColumns();
+
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "Method not allowed" });
@@ -47,10 +47,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         studentNumber: true,
         gender: true,
         faceImageUrl: true,
-        faceEmbedding: true,
         attendances: {
           where: { date },
-          select: { status: true, checkInTime: true },
+          select: {
+            status: true,
+            checkInTime: true,
+            checkInLatitude: true,
+            checkInLongitude: true,
+            checkInAccuracy: true,
+            checkInPhotoUrl: true,
+          },
         },
       },
     }),
@@ -68,9 +74,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       studentNumber: student.studentNumber,
       gender: student.gender,
       faceImageUrl: student.faceImageUrl,
-      hasFace: !!student.faceEmbedding,
       status: attendance?.status ?? null,
-      checkInTime: formatTime(attendance?.checkInTime ?? null),
+      checkInTime: formatStudentAttendanceTime(attendance?.checkInTime ?? null),
+      checkInPhotoUrl: attendance?.checkInPhotoUrl ?? null,
+      checkInLocation: serializeStudentAttendanceLocation(attendance),
     };
   });
 

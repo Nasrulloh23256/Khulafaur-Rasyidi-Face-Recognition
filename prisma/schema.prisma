@@ -132,6 +132,10 @@ model Attendance {
   date        DateTime
   status      AttendanceStatus
   checkInTime DateTime?
+  checkInLatitude  Float?
+  checkInLongitude Float?
+  checkInAccuracy  Float?
+  checkInPhotoUrl  String?
   notes       String?
   createdById String?
   createdAt   DateTime         @default(now())
