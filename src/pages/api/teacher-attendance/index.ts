@@ -8,6 +8,11 @@ import {
 
 type AttendanceAction = "check-in" | "check-out";
 const FACE_MATCH_THRESHOLD = 0.55;
+type AttendanceLocation = {
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+};
 
 const getStatus = (attendance: { checkInTime: Date | null; checkOutTime: Date | null } | null | undefined) => {
   if (!attendance?.checkInTime) return "BELUM_ABSEN";
@@ -29,6 +34,38 @@ const normalizeDescriptor = (descriptor: unknown) => {
   const numeric = descriptor.filter((value) => typeof value === "number");
   if (numeric.length !== descriptor.length) return null;
   return numeric as number[];
+};
+
+const normalizeLocation = (value: unknown): AttendanceLocation | null => {
+  if (!value || typeof value !== "object") return null;
+  const location = value as { latitude?: unknown; longitude?: unknown; accuracy?: unknown };
+  const latitude = Number(location.latitude);
+  const longitude = Number(location.longitude);
+  const accuracy = location.accuracy === null || location.accuracy === undefined ? null : Number(location.accuracy);
+
+  if (!Number.isFinite(latitude) || latitude < -90 || latitude > 90) return null;
+  if (!Number.isFinite(longitude) || longitude < -180 || longitude > 180) return null;
+  if (accuracy !== null && (!Number.isFinite(accuracy) || accuracy < 0)) return null;
+
+  return {
+    latitude,
+    longitude,
+    accuracy,
+  };
+};
+
+const attendanceSelect = {
+  id: true,
+  date: true,
+  checkInTime: true,
+  checkOutTime: true,
+  checkInLatitude: true,
+  checkInLongitude: true,
+  checkInAccuracy: true,
+  checkOutLatitude: true,
+  checkOutLongitude: true,
+  checkOutAccuracy: true,
+  notes: true,
 };
 
 const extractEmbeddings = (faceEmbedding: unknown) => {
@@ -139,7 +176,7 @@ const buildRangeRecap = async (start: Date, end: Date) => {
       teacherAttendances: {
         where: { date: { gte: start, lte: end } },
         orderBy: { date: "asc" },
-        select: { id: true, date: true, checkInTime: true, checkOutTime: true, notes: true },
+        select: attendanceSelect,
       },
     },
   });
@@ -165,6 +202,8 @@ const buildRangeRecap = async (start: Date, end: Date) => {
         date: dateKey,
         checkInTime: serialized?.checkInTime ?? null,
         checkOutTime: serialized?.checkOutTime ?? null,
+        checkInLocation: serialized?.checkInLocation ?? null,
+        checkOutLocation: serialized?.checkOutLocation ?? null,
         status,
       };
     });
@@ -224,13 +263,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       const [today, recent] = await Promise.all([
         prisma.teacherAttendance.findUnique({
           where: { teacherId_date: { teacherId: teacher.id, date } },
-          select: { id: true, date: true, checkInTime: true, checkOutTime: true, notes: true },
+          select: attendanceSelect,
         }),
         prisma.teacherAttendance.findMany({
           where: { teacherId: teacher.id },
           orderBy: { date: "desc" },
           take: 7,
-          select: { id: true, date: true, checkInTime: true, checkOutTime: true, notes: true },
+          select: attendanceSelect,
         }),
       ]);
 
@@ -275,7 +314,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         teacherAttendances: {
           where: { date },
           take: 1,
-          select: { id: true, date: true, checkInTime: true, checkOutTime: true, notes: true },
+          select: attendanceSelect,
         },
       },
     });
@@ -309,7 +348,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === "POST") {
-    const { userId, action, date: dateValue, descriptor } = req.body ?? {};
+    const { userId, action, date: dateValue, descriptor, location } = req.body ?? {};
     const normalizedUserId = typeof userId === "string" ? userId.trim() : "";
     const resolvedAction = typeof action === "string" ? action : "";
 
@@ -345,11 +384,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const date = parseDateKey(dateValue);
     const now = new Date();
     const attendanceAction = resolvedAction as AttendanceAction;
+    const attendanceLocation = normalizeLocation(location);
+    if (!attendanceLocation) {
+      return res.status(400).json({ error: "Lokasi absensi wajib diaktifkan dan harus valid" });
+    }
 
     if (attendanceAction === "check-in") {
       const existing = await prisma.teacherAttendance.findUnique({
         where: { teacherId_date: { teacherId: teacher.id, date } },
-        select: { id: true, date: true, checkInTime: true, checkOutTime: true, notes: true },
+        select: attendanceSelect,
       });
 
       if (existing?.checkInTime) {
@@ -362,9 +405,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
       const attendance = await prisma.teacherAttendance.upsert({
         where: { teacherId_date: { teacherId: teacher.id, date } },
-        create: { teacherId: teacher.id, date, checkInTime: now },
-        update: { checkInTime: now },
-        select: { id: true, date: true, checkInTime: true, checkOutTime: true, notes: true },
+        create: {
+          teacherId: teacher.id,
+          date,
+          checkInTime: now,
+          checkInLatitude: attendanceLocation?.latitude ?? null,
+          checkInLongitude: attendanceLocation?.longitude ?? null,
+          checkInAccuracy: attendanceLocation?.accuracy ?? null,
+        },
+        update: {
+          checkInTime: now,
+          checkInLatitude: attendanceLocation?.latitude ?? null,
+          checkInLongitude: attendanceLocation?.longitude ?? null,
+          checkInAccuracy: attendanceLocation?.accuracy ?? null,
+        },
+        select: attendanceSelect,
       });
 
       return res.status(200).json({
@@ -377,7 +432,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const existing = await prisma.teacherAttendance.findUnique({
       where: { teacherId_date: { teacherId: teacher.id, date } },
-      select: { id: true, date: true, checkInTime: true, checkOutTime: true, notes: true },
+      select: attendanceSelect,
     });
 
     if (!existing?.checkInTime) {
@@ -394,8 +449,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     const attendance = await prisma.teacherAttendance.update({
       where: { id: existing.id },
-      data: { checkOutTime: now },
-      select: { id: true, date: true, checkInTime: true, checkOutTime: true, notes: true },
+      data: {
+        checkOutTime: now,
+        checkOutLatitude: attendanceLocation?.latitude ?? null,
+        checkOutLongitude: attendanceLocation?.longitude ?? null,
+        checkOutAccuracy: attendanceLocation?.accuracy ?? null,
+      },
+      select: attendanceSelect,
     });
 
     return res.status(200).json({

@@ -38,6 +38,12 @@ export const serializeTeacherAttendance = (
         date: Date;
         checkInTime: Date | null;
         checkOutTime: Date | null;
+        checkInLatitude?: number | null;
+        checkInLongitude?: number | null;
+        checkInAccuracy?: number | null;
+        checkOutLatitude?: number | null;
+        checkOutLongitude?: number | null;
+        checkOutAccuracy?: number | null;
         notes: string | null;
       }
     | null
@@ -49,6 +55,22 @@ export const serializeTeacherAttendance = (
     date: attendance.date.toISOString(),
     checkInTime: formatTeacherAttendanceTime(attendance.checkInTime),
     checkOutTime: formatTeacherAttendanceTime(attendance.checkOutTime),
+    checkInLocation:
+      typeof attendance.checkInLatitude === "number" && typeof attendance.checkInLongitude === "number"
+        ? {
+            latitude: attendance.checkInLatitude,
+            longitude: attendance.checkInLongitude,
+            accuracy: attendance.checkInAccuracy ?? null,
+          }
+        : null,
+    checkOutLocation:
+      typeof attendance.checkOutLatitude === "number" && typeof attendance.checkOutLongitude === "number"
+        ? {
+            latitude: attendance.checkOutLatitude,
+            longitude: attendance.checkOutLongitude,
+            accuracy: attendance.checkOutAccuracy ?? null,
+          }
+        : null,
     notes: attendance.notes,
   };
 };
@@ -87,6 +109,24 @@ export const ensureTeacherAttendanceTable = async () => {
       );
       await prisma.$executeRawUnsafe(
         `ALTER TABLE "TeacherAttendance" ADD COLUMN IF NOT EXISTS "status" "AttendanceStatus" NOT NULL DEFAULT 'PRESENT'`,
+      );
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "TeacherAttendance" ADD COLUMN IF NOT EXISTS "checkInLatitude" DOUBLE PRECISION`,
+      );
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "TeacherAttendance" ADD COLUMN IF NOT EXISTS "checkInLongitude" DOUBLE PRECISION`,
+      );
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "TeacherAttendance" ADD COLUMN IF NOT EXISTS "checkInAccuracy" DOUBLE PRECISION`,
+      );
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "TeacherAttendance" ADD COLUMN IF NOT EXISTS "checkOutLatitude" DOUBLE PRECISION`,
+      );
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "TeacherAttendance" ADD COLUMN IF NOT EXISTS "checkOutLongitude" DOUBLE PRECISION`,
+      );
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "TeacherAttendance" ADD COLUMN IF NOT EXISTS "checkOutAccuracy" DOUBLE PRECISION`,
       );
       await prisma.$executeRawUnsafe(`
         DO $$

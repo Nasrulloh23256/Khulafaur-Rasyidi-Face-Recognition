@@ -51,11 +51,19 @@ type AuthUser = {
 
 type TeacherAttendanceStatus = "BELUM_ABSEN" | "SUDAH_DATANG" | "SELESAI";
 
+type AttendanceLocation = {
+  latitude: number;
+  longitude: number;
+  accuracy: number | null;
+};
+
 type TeacherAttendance = {
   id: string;
   date: string;
   checkInTime: string | null;
   checkOutTime: string | null;
+  checkInLocation: AttendanceLocation | null;
+  checkOutLocation: AttendanceLocation | null;
   notes: string | null;
 };
 
@@ -90,6 +98,8 @@ type RecapDaily = {
   date: string;
   checkInTime: string | null;
   checkOutTime: string | null;
+  checkInLocation: AttendanceLocation | null;
+  checkOutLocation: AttendanceLocation | null;
   status: TeacherAttendanceStatus;
 };
 
@@ -147,6 +157,18 @@ const csvEscape = (value: string | number | null | undefined) => {
   const safeValue = /^[=+\-@]/.test(rawValue) ? `'${rawValue}` : rawValue;
   return `"${safeValue.replace(/"/g, '""')}"`;
 };
+
+const formatLocationText = (location: AttendanceLocation | null | undefined) => {
+  if (!location) return "-";
+  const coordinates = `${location.latitude.toFixed(6)}, ${location.longitude.toFixed(6)}`;
+  if (typeof location.accuracy === "number") {
+    return `${coordinates} (${Math.round(location.accuracy)} m)`;
+  }
+  return coordinates;
+};
+
+const getLocationMapUrl = (location: AttendanceLocation | null | undefined) =>
+  location ? `https://www.google.com/maps?q=${location.latitude},${location.longitude}` : "-";
 
 const AbsensiPengajarPage = () => {
   const { toast } = useToast();
@@ -229,6 +251,8 @@ const AbsensiPengajarPage = () => {
           date: item.date,
           checkInTime: item.checkInTime,
           checkOutTime: item.checkOutTime,
+          checkInLocation: item.checkInLocation,
+          checkOutLocation: item.checkOutLocation,
           status: item.status,
         })),
       ),
@@ -415,11 +439,36 @@ const AbsensiPengajarPage = () => {
     setIsCameraOpen(true);
   };
 
+  const getCurrentLocation = () =>
+    new Promise<AttendanceLocation>((resolve, reject) => {
+      if (typeof navigator === "undefined" || !navigator.geolocation) {
+        reject(new Error("Browser tidak mendukung akses lokasi."));
+        return;
+      }
+
+      navigator.geolocation.getCurrentPosition(
+        (position) => {
+          resolve({
+            latitude: position.coords.latitude,
+            longitude: position.coords.longitude,
+            accuracy: Number.isFinite(position.coords.accuracy) ? position.coords.accuracy : null,
+          });
+        },
+        () => reject(new Error("Izin lokasi ditolak atau lokasi tidak terbaca.")),
+        {
+          enableHighAccuracy: true,
+          timeout: 15000,
+          maximumAge: 0,
+        },
+      );
+    });
+
   const handleTeacherAction = async (action: "check-in" | "check-out", descriptor: number[]) => {
     if (!currentUser) return;
 
     setIsSaving(true);
     try {
+      const location = await getCurrentLocation();
       const response = await fetch("/api/teacher-attendance", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
@@ -428,6 +477,7 @@ const AbsensiPengajarPage = () => {
           action,
           date: getLocalDateKey(),
           descriptor,
+          location,
         }),
       });
       const data = await response.json();
@@ -502,14 +552,26 @@ const AbsensiPengajarPage = () => {
       return;
     }
 
-    const headers = ["Tanggal", "Pengajar", "Kontak", "Kelas", "Jam Datang", "Jam Keluar", "Status"];
+    const headers = [
+      "Tanggal",
+      "Pengajar",
+      "Kontak",
+      "Kelas",
+      "Jam Datang",
+      "Lokasi Datang",
+      "Jam Keluar",
+      "Lokasi Keluar",
+      "Status",
+    ];
     const rows = flatRecapRows.map((item) => [
       formatDate(item.date),
       item.fullName,
       item.contact,
       item.classes,
       item.checkInTime ?? "-",
+      getLocationMapUrl(item.checkInLocation),
       item.checkOutTime ?? "-",
+      getLocationMapUrl(item.checkOutLocation),
       statusLabel[item.status],
     ]);
     const csvContent = [headers, ...rows]
@@ -536,6 +598,22 @@ const AbsensiPengajarPage = () => {
     return <Badge variant="secondary">{statusLabel[status]}</Badge>;
   };
 
+  const renderLocationLink = (location: AttendanceLocation | null | undefined) => {
+    if (!location) return <span className="text-muted-foreground">-</span>;
+
+    return (
+      <a
+        href={getLocationMapUrl(location)}
+        target="_blank"
+        rel="noreferrer"
+        className="inline-flex flex-col text-sm font-medium text-primary hover:underline"
+      >
+        <span>Lihat Maps</span>
+        <span className="text-xs font-normal text-muted-foreground">{formatLocationText(location)}</span>
+      </a>
+    );
+  };
+
   const canCheckIn = teacherStatus === "BELUM_ABSEN";
   const canCheckOut = teacherStatus === "SUDAH_DATANG";
 
@@ -553,7 +631,7 @@ const AbsensiPengajarPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
                     <div className="rounded-xl border border-border p-4">
                       <p className="text-sm text-muted-foreground">Status</p>
                       <div className="mt-2">{renderStatusBadge(teacherStatus)}</div>
@@ -569,6 +647,14 @@ const AbsensiPengajarPage = () => {
                       <p className="mt-2 text-2xl font-bold text-foreground">
                         {todayAttendance?.checkOutTime ?? "-"}
                       </p>
+                    </div>
+                    <div className="rounded-xl border border-border p-4">
+                      <p className="text-sm text-muted-foreground">Lokasi Datang</p>
+                      <div className="mt-2">{renderLocationLink(todayAttendance?.checkInLocation)}</div>
+                    </div>
+                    <div className="rounded-xl border border-border p-4">
+                      <p className="text-sm text-muted-foreground">Lokasi Keluar</p>
+                      <div className="mt-2">{renderLocationLink(todayAttendance?.checkOutLocation)}</div>
                     </div>
                   </div>
 
@@ -650,20 +736,22 @@ const AbsensiPengajarPage = () => {
                     <TableRow>
                       <TableHead>Tanggal</TableHead>
                       <TableHead>Jam Datang</TableHead>
+                      <TableHead>Lokasi Datang</TableHead>
                       <TableHead>Jam Keluar</TableHead>
+                      <TableHead>Lokasi Keluar</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading && (
                       <TableRow>
-                        <TableCell colSpan={3} className="text-center text-muted-foreground">
+                        <TableCell colSpan={5} className="text-center text-muted-foreground">
                           Memuat data...
                         </TableCell>
                       </TableRow>
                     )}
                     {!isLoading && recentAttendance.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={3} className="text-center text-muted-foreground">
+                        <TableCell colSpan={5} className="text-center text-muted-foreground">
                           Belum ada riwayat absensi.
                         </TableCell>
                       </TableRow>
@@ -672,7 +760,9 @@ const AbsensiPengajarPage = () => {
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{formatDate(item.date)}</TableCell>
                         <TableCell>{item.checkInTime ?? "-"}</TableCell>
+                        <TableCell>{renderLocationLink(item.checkInLocation)}</TableCell>
                         <TableCell>{item.checkOutTime ?? "-"}</TableCell>
+                        <TableCell>{renderLocationLink(item.checkOutLocation)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -756,21 +846,23 @@ const AbsensiPengajarPage = () => {
                       <TableHead>Pengajar</TableHead>
                       <TableHead>Kelas</TableHead>
                       <TableHead>Jam Datang</TableHead>
+                      <TableHead>Lokasi Datang</TableHead>
                       <TableHead>Jam Keluar</TableHead>
+                      <TableHead>Lokasi Keluar</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center text-muted-foreground">
                           Memuat data...
                         </TableCell>
                       </TableRow>
                     )}
                     {!isLoading && teacherRows.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center text-muted-foreground">
                           Belum ada data pengajar.
                         </TableCell>
                       </TableRow>
@@ -789,7 +881,9 @@ const AbsensiPengajarPage = () => {
                             : "-"}
                         </TableCell>
                         <TableCell>{teacher.attendance?.checkInTime ?? "-"}</TableCell>
+                        <TableCell>{renderLocationLink(teacher.attendance?.checkInLocation)}</TableCell>
                         <TableCell>{teacher.attendance?.checkOutTime ?? "-"}</TableCell>
+                        <TableCell>{renderLocationLink(teacher.attendance?.checkOutLocation)}</TableCell>
                         <TableCell>{renderStatusBadge(teacher.status)}</TableCell>
                       </TableRow>
                     ))}
@@ -944,21 +1038,23 @@ const AbsensiPengajarPage = () => {
                         <TableHead>Pengajar</TableHead>
                         <TableHead>Kelas</TableHead>
                         <TableHead>Jam Datang</TableHead>
+                        <TableHead>Lokasi Datang</TableHead>
                         <TableHead>Jam Keluar</TableHead>
+                        <TableHead>Lokasi Keluar</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {isRecapLoading && (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground">
+                          <TableCell colSpan={8} className="text-center text-muted-foreground">
                             Memuat detail rekap...
                           </TableCell>
                         </TableRow>
                       )}
                       {!isRecapLoading && flatRecapRows.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={6} className="text-center text-muted-foreground">
+                          <TableCell colSpan={8} className="text-center text-muted-foreground">
                             Detail rekap belum tersedia.
                           </TableCell>
                         </TableRow>
@@ -969,7 +1065,9 @@ const AbsensiPengajarPage = () => {
                           <TableCell className="font-medium text-foreground">{item.fullName}</TableCell>
                           <TableCell>{item.classes}</TableCell>
                           <TableCell>{item.checkInTime ?? "-"}</TableCell>
+                          <TableCell>{renderLocationLink(item.checkInLocation)}</TableCell>
                           <TableCell>{item.checkOutTime ?? "-"}</TableCell>
+                          <TableCell>{renderLocationLink(item.checkOutLocation)}</TableCell>
                           <TableCell>{renderStatusBadge(item.status)}</TableCell>
                         </TableRow>
                       ))}
@@ -996,8 +1094,8 @@ const AbsensiPengajarPage = () => {
             <DialogTitle>Scan Wajah Pengajar</DialogTitle>
             <DialogDescription>
               {pendingAction === "check-out"
-                ? "Arahkan wajah ke kamera untuk mencatat jam pulang."
-                : "Arahkan wajah ke kamera untuk mencatat jam datang."}
+                ? "Arahkan wajah ke kamera dan aktifkan lokasi untuk mencatat jam pulang."
+                : "Arahkan wajah ke kamera dan aktifkan lokasi untuk mencatat jam datang."}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
