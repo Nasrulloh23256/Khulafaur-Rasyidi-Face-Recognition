@@ -44,7 +44,6 @@ const teacherMenuItems = [
   { icon: Camera, label: "Kehadiran", path: "/dashboard/kehadiran" },
   { icon: BookOpen, label: "Kelas", path: "/dashboard/kelas" },
   { icon: GraduationCap, label: "Siswa", path: "/dashboard/siswa" },
-  { icon: Camera, label: "Enroll Wajah", path: "/dashboard/enroll-wajah" },
 ];
 
 type AuthUser = {

@@ -87,7 +87,7 @@ const Login = () => {
           </div>
           <h2 className="text-3xl font-extrabold leading-tight">Masuk untuk mencatat dan memantau kehadiran.</h2>
           <p className="mt-5 leading-7 text-primary-foreground/80">
-            Akses guru diarahkan ke pekerjaan absensi, kelas, siswa, dan enroll wajah. Informasi internal lain
+            Akses guru diarahkan ke pekerjaan absensi, kelas, dan siswa. Informasi internal lain
             tetap tidak ditampilkan di area guru.
           </p>
         </div>

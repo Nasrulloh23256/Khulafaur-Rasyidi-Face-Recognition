@@ -1,0 +1,3 @@
+ALTER TABLE "TeacherAttendance"
+ADD COLUMN IF NOT EXISTS "checkInPhotoUrl" TEXT,
+ADD COLUMN IF NOT EXISTS "checkOutPhotoUrl" TEXT;

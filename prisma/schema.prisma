@@ -156,9 +156,11 @@ model TeacherAttendance {
   checkInLatitude   Float?
   checkInLongitude  Float?
   checkInAccuracy   Float?
+  checkInPhotoUrl   String?
   checkOutLatitude  Float?
   checkOutLongitude Float?
   checkOutAccuracy  Float?
+  checkOutPhotoUrl  String?
   notes        String?
   createdAt    DateTime         @default(now())
   updatedAt    DateTime         @updatedAt

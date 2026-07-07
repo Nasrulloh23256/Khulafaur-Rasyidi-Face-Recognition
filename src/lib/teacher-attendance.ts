@@ -41,9 +41,11 @@ export const serializeTeacherAttendance = (
         checkInLatitude?: number | null;
         checkInLongitude?: number | null;
         checkInAccuracy?: number | null;
+        checkInPhotoUrl?: string | null;
         checkOutLatitude?: number | null;
         checkOutLongitude?: number | null;
         checkOutAccuracy?: number | null;
+        checkOutPhotoUrl?: string | null;
         notes: string | null;
       }
     | null
@@ -63,6 +65,7 @@ export const serializeTeacherAttendance = (
             accuracy: attendance.checkInAccuracy ?? null,
           }
         : null,
+    checkInPhotoUrl: attendance.checkInPhotoUrl ?? null,
     checkOutLocation:
       typeof attendance.checkOutLatitude === "number" && typeof attendance.checkOutLongitude === "number"
         ? {
@@ -71,6 +74,7 @@ export const serializeTeacherAttendance = (
             accuracy: attendance.checkOutAccuracy ?? null,
           }
         : null,
+    checkOutPhotoUrl: attendance.checkOutPhotoUrl ?? null,
     notes: attendance.notes,
   };
 };
@@ -120,6 +124,9 @@ export const ensureTeacherAttendanceTable = async () => {
         `ALTER TABLE "TeacherAttendance" ADD COLUMN IF NOT EXISTS "checkInAccuracy" DOUBLE PRECISION`,
       );
       await prisma.$executeRawUnsafe(
+        `ALTER TABLE "TeacherAttendance" ADD COLUMN IF NOT EXISTS "checkInPhotoUrl" TEXT`,
+      );
+      await prisma.$executeRawUnsafe(
         `ALTER TABLE "TeacherAttendance" ADD COLUMN IF NOT EXISTS "checkOutLatitude" DOUBLE PRECISION`,
       );
       await prisma.$executeRawUnsafe(
@@ -127,6 +134,9 @@ export const ensureTeacherAttendanceTable = async () => {
       );
       await prisma.$executeRawUnsafe(
         `ALTER TABLE "TeacherAttendance" ADD COLUMN IF NOT EXISTS "checkOutAccuracy" DOUBLE PRECISION`,
+      );
+      await prisma.$executeRawUnsafe(
+        `ALTER TABLE "TeacherAttendance" ADD COLUMN IF NOT EXISTS "checkOutPhotoUrl" TEXT`,
       );
       await prisma.$executeRawUnsafe(`
         DO $$

@@ -5,35 +5,27 @@ import {
   parseDateKey,
   serializeTeacherAttendance,
 } from "@/lib/teacher-attendance";
+import { saveBase64Image } from "@/lib/image-storage";
 
 type AttendanceAction = "check-in" | "check-out";
-const FACE_MATCH_THRESHOLD = 0.55;
 type AttendanceLocation = {
   latitude: number;
   longitude: number;
   accuracy: number | null;
 };
 
+export const config = {
+  api: {
+    bodyParser: {
+      sizeLimit: "6mb",
+    },
+  },
+};
+
 const getStatus = (attendance: { checkInTime: Date | null; checkOutTime: Date | null } | null | undefined) => {
   if (!attendance?.checkInTime) return "BELUM_ABSEN";
   if (!attendance.checkOutTime) return "SUDAH_DATANG";
   return "SELESAI";
-};
-
-const euclideanDistance = (a: number[], b: number[]) => {
-  let sum = 0;
-  for (let i = 0; i < a.length; i += 1) {
-    const diff = a[i] - b[i];
-    sum += diff * diff;
-  }
-  return Math.sqrt(sum);
-};
-
-const normalizeDescriptor = (descriptor: unknown) => {
-  if (!Array.isArray(descriptor) || descriptor.length === 0) return null;
-  const numeric = descriptor.filter((value) => typeof value === "number");
-  if (numeric.length !== descriptor.length) return null;
-  return numeric as number[];
 };
 
 const normalizeLocation = (value: unknown): AttendanceLocation | null => {
@@ -62,62 +54,12 @@ const attendanceSelect = {
   checkInLatitude: true,
   checkInLongitude: true,
   checkInAccuracy: true,
+  checkInPhotoUrl: true,
   checkOutLatitude: true,
   checkOutLongitude: true,
   checkOutAccuracy: true,
+  checkOutPhotoUrl: true,
   notes: true,
-};
-
-const extractEmbeddings = (faceEmbedding: unknown) => {
-  const embeddings: number[][] = [];
-  if (Array.isArray(faceEmbedding)) {
-    const numeric = faceEmbedding.filter((value) => typeof value === "number");
-    if (numeric.length === faceEmbedding.length) embeddings.push(numeric as number[]);
-    return embeddings;
-  }
-  if (faceEmbedding && typeof faceEmbedding === "object") {
-    const embeddingObj = faceEmbedding as { mean?: unknown; samples?: unknown };
-    const samples = Array.isArray(embeddingObj.samples) ? embeddingObj.samples : [];
-    const mean = Array.isArray(embeddingObj.mean) ? embeddingObj.mean : null;
-    for (const sample of samples) {
-      if (!Array.isArray(sample)) continue;
-      const numeric = sample.filter((value) => typeof value === "number");
-      if (numeric.length === sample.length) {
-        embeddings.push(numeric as number[]);
-      }
-    }
-    if (embeddings.length === 0 && mean) {
-      const numeric = mean.filter((value) => typeof value === "number");
-      if (numeric.length === mean.length) {
-        embeddings.push(numeric as number[]);
-      }
-    }
-  }
-  return embeddings;
-};
-
-const matchFace = (faceEmbedding: unknown, inputDescriptor: number[]) => {
-  const embeddings = extractEmbeddings(faceEmbedding);
-  if (embeddings.length === 0) {
-    return { registered: false, matched: false, distance: null };
-  }
-
-  let bestDistance = Number.POSITIVE_INFINITY;
-  for (const embedding of embeddings) {
-    if (embedding.length !== inputDescriptor.length) continue;
-    const distance = euclideanDistance(inputDescriptor, embedding);
-    if (distance < bestDistance) bestDistance = distance;
-  }
-
-  if (!Number.isFinite(bestDistance)) {
-    return { registered: false, matched: false, distance: null };
-  }
-
-  return {
-    registered: true,
-    matched: bestDistance <= FACE_MATCH_THRESHOLD,
-    distance: bestDistance,
-  };
 };
 
 const findTeacherByUserId = async (userId: string) =>
@@ -127,8 +69,6 @@ const findTeacherByUserId = async (userId: string) =>
       id: true,
       fullName: true,
       phone: true,
-      faceEmbedding: true,
-      faceImageUrl: true,
       user: { select: { email: true } },
       classes: { select: { id: true, name: true } },
     },
@@ -140,8 +80,6 @@ const buildTeacherPayload = (teacher: NonNullable<Awaited<ReturnType<typeof find
   phone: teacher.phone,
   email: teacher.user?.email ?? null,
   classes: teacher.classes,
-  faceImageUrl: teacher.faceImageUrl,
-  hasFace: !!teacher.faceEmbedding,
 });
 
 const isDateKey = (value: unknown): value is string =>
@@ -204,6 +142,8 @@ const buildRangeRecap = async (start: Date, end: Date) => {
         checkOutTime: serialized?.checkOutTime ?? null,
         checkInLocation: serialized?.checkInLocation ?? null,
         checkOutLocation: serialized?.checkOutLocation ?? null,
+        checkInPhotoUrl: serialized?.checkInPhotoUrl ?? null,
+        checkOutPhotoUrl: serialized?.checkOutPhotoUrl ?? null,
         status,
       };
     });
@@ -245,6 +185,13 @@ const buildRangeRecap = async (start: Date, end: Date) => {
     },
     teachers: rows,
   };
+};
+
+const saveAttendancePhoto = async (value: unknown) => {
+  if (typeof value !== "string" || value.trim() === "") {
+    throw new Error("INVALID_FORMAT");
+  }
+  return saveBase64Image(value.trim(), { folder: "uploads/teacher-attendance" });
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
@@ -348,7 +295,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === "POST") {
-    const { userId, action, date: dateValue, descriptor, location } = req.body ?? {};
+    const { userId, action, date: dateValue, photo, location } = req.body ?? {};
     const normalizedUserId = typeof userId === "string" ? userId.trim() : "";
     const resolvedAction = typeof action === "string" ? action : "";
 
@@ -360,25 +307,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: "Aksi absensi tidak valid" });
     }
 
-    const inputDescriptor = normalizeDescriptor(descriptor);
-    if (!inputDescriptor) {
-      return res.status(400).json({ error: "Data wajah tidak valid" });
-    }
-
     const teacher = await findTeacherByUserId(normalizedUserId);
     if (!teacher) {
       return res.status(404).json({ error: "Akun guru belum terhubung dengan data pengajar" });
-    }
-
-    const faceMatch = matchFace(teacher.faceEmbedding, inputDescriptor);
-    if (!faceMatch.registered) {
-      return res.status(404).json({ error: "Wajah pengajar belum terdaftar" });
-    }
-    if (!faceMatch.matched) {
-      return res.status(401).json({
-        error: "Wajah tidak cocok dengan akun pengajar",
-        distance: faceMatch.distance,
-      });
     }
 
     const date = parseDateKey(dateValue);
@@ -403,6 +334,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         });
       }
 
+      let photoUrl: string;
+      try {
+        photoUrl = await saveAttendancePhoto(photo);
+      } catch (error) {
+        const message = error instanceof Error ? error.message : "INVALID_IMAGE";
+        if (message === "IMAGE_TOO_LARGE") {
+          return res.status(413).json({ error: "Ukuran foto maksimal 2MB" });
+        }
+        return res.status(400).json({ error: "Foto absensi wajib diambil dari kamera" });
+      }
+
       const attendance = await prisma.teacherAttendance.upsert({
         where: { teacherId_date: { teacherId: teacher.id, date } },
         create: {
@@ -412,12 +354,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           checkInLatitude: attendanceLocation?.latitude ?? null,
           checkInLongitude: attendanceLocation?.longitude ?? null,
           checkInAccuracy: attendanceLocation?.accuracy ?? null,
+          checkInPhotoUrl: photoUrl,
         },
         update: {
           checkInTime: now,
           checkInLatitude: attendanceLocation?.latitude ?? null,
           checkInLongitude: attendanceLocation?.longitude ?? null,
           checkInAccuracy: attendanceLocation?.accuracy ?? null,
+          checkInPhotoUrl: photoUrl,
         },
         select: attendanceSelect,
       });
@@ -426,7 +370,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         teacher: buildTeacherPayload(teacher),
         attendance: serializeTeacherAttendance(attendance),
         status: getStatus(attendance),
-        distance: faceMatch.distance,
       });
     }
 
@@ -447,6 +390,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
+    let photoUrl: string;
+    try {
+      photoUrl = await saveAttendancePhoto(photo);
+    } catch (error) {
+      const message = error instanceof Error ? error.message : "INVALID_IMAGE";
+      if (message === "IMAGE_TOO_LARGE") {
+        return res.status(413).json({ error: "Ukuran foto maksimal 2MB" });
+      }
+      return res.status(400).json({ error: "Foto absensi wajib diambil dari kamera" });
+    }
+
     const attendance = await prisma.teacherAttendance.update({
       where: { id: existing.id },
       data: {
@@ -454,6 +408,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         checkOutLatitude: attendanceLocation?.latitude ?? null,
         checkOutLongitude: attendanceLocation?.longitude ?? null,
         checkOutAccuracy: attendanceLocation?.accuracy ?? null,
+        checkOutPhotoUrl: photoUrl,
       },
       select: attendanceSelect,
     });
@@ -462,7 +417,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       teacher: buildTeacherPayload(teacher),
       attendance: serializeTeacherAttendance(attendance),
       status: getStatus(attendance),
-      distance: faceMatch.distance,
     });
   }
 

@@ -40,7 +40,6 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { useToast } from "@/hooks/use-toast";
-import { getStableFaceDescriptor } from "@/lib/face-api";
 
 type AuthUser = {
   id: string;
@@ -64,6 +63,8 @@ type TeacherAttendance = {
   checkOutTime: string | null;
   checkInLocation: AttendanceLocation | null;
   checkOutLocation: AttendanceLocation | null;
+  checkInPhotoUrl: string | null;
+  checkOutPhotoUrl: string | null;
   notes: string | null;
 };
 
@@ -73,8 +74,6 @@ type CurrentTeacher = {
   phone: string | null;
   email: string | null;
   classes: { id: string; name: string }[];
-  faceImageUrl: string | null;
-  hasFace: boolean;
 };
 
 type TeacherRow = {
@@ -100,6 +99,8 @@ type RecapDaily = {
   checkOutTime: string | null;
   checkInLocation: AttendanceLocation | null;
   checkOutLocation: AttendanceLocation | null;
+  checkInPhotoUrl: string | null;
+  checkOutPhotoUrl: string | null;
   status: TeacherAttendanceStatus;
 };
 
@@ -170,6 +171,11 @@ const formatLocationText = (location: AttendanceLocation | null | undefined) => 
 const getLocationMapUrl = (location: AttendanceLocation | null | undefined) =>
   location ? `https://www.google.com/maps?q=${location.latitude},${location.longitude}` : "-";
 
+const getPhotoCsvValue = (url: string | null | undefined) => {
+  if (!url) return "-";
+  return url.startsWith("data:") ? "Tersimpan di sistem" : url;
+};
+
 const AbsensiPengajarPage = () => {
   const { toast } = useToast();
   const [currentUser, setCurrentUser] = useState<AuthUser | null>(null);
@@ -202,7 +208,7 @@ const AbsensiPengajarPage = () => {
   const [isRecapLoading, setIsRecapLoading] = useState(false);
   const [isSaving, setIsSaving] = useState(false);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
-  const [isRecognizing, setIsRecognizing] = useState(false);
+  const [isCapturing, setIsCapturing] = useState(false);
   const [pendingAction, setPendingAction] = useState<"check-in" | "check-out" | null>(null);
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -253,6 +259,8 @@ const AbsensiPengajarPage = () => {
           checkOutTime: item.checkOutTime,
           checkInLocation: item.checkInLocation,
           checkOutLocation: item.checkOutLocation,
+          checkInPhotoUrl: item.checkInPhotoUrl,
+          checkOutPhotoUrl: item.checkOutPhotoUrl,
           status: item.status,
         })),
       ),
@@ -425,16 +433,7 @@ const AbsensiPengajarPage = () => {
     return () => stopCamera();
   }, [isCameraOpen]);
 
-  const openFaceScan = (action: "check-in" | "check-out") => {
-    if (!currentTeacher?.hasFace) {
-      toast({
-        title: "Wajah belum terdaftar",
-        description: "Daftarkan wajah pengajar di menu Enroll Wajah terlebih dahulu.",
-        variant: "destructive",
-      });
-      return;
-    }
-
+  const openPhotoCapture = (action: "check-in" | "check-out") => {
     setPendingAction(action);
     setIsCameraOpen(true);
   };
@@ -463,7 +462,31 @@ const AbsensiPengajarPage = () => {
       );
     });
 
-  const handleTeacherAction = async (action: "check-in" | "check-out", descriptor: number[]) => {
+  const capturePhoto = () => {
+    const video = videoRef.current;
+    if (!video || !video.videoWidth || !video.videoHeight) {
+      throw new Error("Kamera belum siap mengambil foto.");
+    }
+
+    const maxWidth = 1280;
+    const scale = Math.min(1, maxWidth / video.videoWidth);
+    const width = Math.round(video.videoWidth * scale);
+    const height = Math.round(video.videoHeight * scale);
+    const canvas = document.createElement("canvas");
+    canvas.width = width;
+    canvas.height = height;
+    const context = canvas.getContext("2d");
+    if (!context) {
+      throw new Error("Browser tidak bisa mengambil foto dari kamera.");
+    }
+
+    context.translate(width, 0);
+    context.scale(-1, 1);
+    context.drawImage(video, 0, 0, width, height);
+    return canvas.toDataURL("image/jpeg", 0.72);
+  };
+
+  const handleTeacherAction = async (action: "check-in" | "check-out", photo: string) => {
     if (!currentUser) return;
 
     setIsSaving(true);
@@ -476,7 +499,7 @@ const AbsensiPengajarPage = () => {
           userId: currentUser.id,
           action,
           date: getLocalDateKey(),
-          descriptor,
+          photo,
           location,
         }),
       });
@@ -495,8 +518,8 @@ const AbsensiPengajarPage = () => {
         title: "Absensi tersimpan",
         description:
           action === "check-in"
-            ? "Wajah cocok. Jam datang berhasil dicatat."
-            : "Wajah cocok. Jam pulang berhasil dicatat.",
+            ? "Foto dan lokasi datang berhasil dicatat."
+            : "Foto dan lokasi pulang berhasil dicatat.",
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : "Gagal menyimpan absensi";
@@ -510,35 +533,22 @@ const AbsensiPengajarPage = () => {
     }
   };
 
-  const handleFaceScan = async () => {
+  const handlePhotoCapture = async () => {
     if (!pendingAction || !videoRef.current) return;
 
-    setIsRecognizing(true);
+    setIsCapturing(true);
     try {
-      const descriptor = await getStableFaceDescriptor(videoRef.current, {
-        samples: 10,
-        minSamples: 2,
-        intervalMs: 180,
-      });
-      if (!descriptor) {
-        toast({
-          title: "Wajah tidak terdeteksi",
-          description: "Arahkan wajah ke kamera dengan pencahayaan cukup.",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      await handleTeacherAction(pendingAction, Array.from(descriptor));
+      const photo = capturePhoto();
+      await handleTeacherAction(pendingAction, photo);
     } catch (error) {
-      const message = error instanceof Error ? error.message : "Gagal melakukan scan wajah";
+      const message = error instanceof Error ? error.message : "Gagal mengambil foto absensi";
       toast({
-        title: "Gagal scan wajah",
+        title: "Gagal menyimpan absensi",
         description: message,
         variant: "destructive",
       });
     } finally {
-      setIsRecognizing(false);
+      setIsCapturing(false);
     }
   };
 
@@ -558,8 +568,10 @@ const AbsensiPengajarPage = () => {
       "Kontak",
       "Kelas",
       "Jam Datang",
+      "Foto Datang",
       "Lokasi Datang",
       "Jam Keluar",
+      "Foto Keluar",
       "Lokasi Keluar",
       "Status",
     ];
@@ -569,8 +581,10 @@ const AbsensiPengajarPage = () => {
       item.contact,
       item.classes,
       item.checkInTime ?? "-",
+      getPhotoCsvValue(item.checkInPhotoUrl),
       getLocationMapUrl(item.checkInLocation),
       item.checkOutTime ?? "-",
+      getPhotoCsvValue(item.checkOutPhotoUrl),
       getLocationMapUrl(item.checkOutLocation),
       statusLabel[item.status],
     ]);
@@ -614,6 +628,21 @@ const AbsensiPengajarPage = () => {
     );
   };
 
+  const renderPhotoLink = (url: string | null | undefined) => {
+    if (!url) return <span className="text-muted-foreground">-</span>;
+
+    return (
+      <a
+        href={url}
+        target="_blank"
+        rel="noreferrer"
+        className="text-sm font-medium text-primary hover:underline"
+      >
+        Lihat Foto
+      </a>
+    );
+  };
+
   const canCheckIn = teacherStatus === "BELUM_ABSEN";
   const canCheckOut = teacherStatus === "SUDAH_DATANG";
 
@@ -631,7 +660,7 @@ const AbsensiPengajarPage = () => {
                   </CardTitle>
                 </CardHeader>
                 <CardContent className="flex flex-col gap-5">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-5 gap-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-4 gap-4">
                     <div className="rounded-xl border border-border p-4">
                       <p className="text-sm text-muted-foreground">Status</p>
                       <div className="mt-2">{renderStatusBadge(teacherStatus)}</div>
@@ -653,8 +682,16 @@ const AbsensiPengajarPage = () => {
                       <div className="mt-2">{renderLocationLink(todayAttendance?.checkInLocation)}</div>
                     </div>
                     <div className="rounded-xl border border-border p-4">
+                      <p className="text-sm text-muted-foreground">Foto Datang</p>
+                      <div className="mt-2">{renderPhotoLink(todayAttendance?.checkInPhotoUrl)}</div>
+                    </div>
+                    <div className="rounded-xl border border-border p-4">
                       <p className="text-sm text-muted-foreground">Lokasi Keluar</p>
                       <div className="mt-2">{renderLocationLink(todayAttendance?.checkOutLocation)}</div>
+                    </div>
+                    <div className="rounded-xl border border-border p-4">
+                      <p className="text-sm text-muted-foreground">Foto Keluar</p>
+                      <div className="mt-2">{renderPhotoLink(todayAttendance?.checkOutPhotoUrl)}</div>
                     </div>
                   </div>
 
@@ -662,20 +699,20 @@ const AbsensiPengajarPage = () => {
                     <Button
                       variant="gradient"
                       className="gap-2"
-                      onClick={() => openFaceScan("check-in")}
-                      disabled={!canCheckIn || isSaving || isRecognizing}
+                      onClick={() => openPhotoCapture("check-in")}
+                      disabled={!canCheckIn || isSaving || isCapturing}
                     >
                       <Camera className="w-4 h-4" />
-                      Scan Wajah Datang
+                      Ambil Foto Datang
                     </Button>
                     <Button
                       variant="outline"
                       className="gap-2"
-                      onClick={() => openFaceScan("check-out")}
-                      disabled={!canCheckOut || isSaving || isRecognizing}
+                      onClick={() => openPhotoCapture("check-out")}
+                      disabled={!canCheckOut || isSaving || isCapturing}
                     >
                       <Camera className="w-4 h-4" />
-                      Scan Wajah Pulang
+                      Ambil Foto Pulang
                     </Button>
                     <Button variant="ghost" className="gap-2" onClick={() => loadData()} disabled={isLoading}>
                       <RefreshCw className="w-4 h-4" />
@@ -695,32 +732,13 @@ const AbsensiPengajarPage = () => {
                 <CardContent className="flex flex-col gap-3">
                   <p className="text-2xl font-bold text-foreground">{formatDate(getLocalDateKey())}</p>
                   <p className="text-sm text-muted-foreground">
-                    Gunakan scan wajah saat mulai mengajar dan saat selesai.
+                    Ambil foto langsung dan aktifkan lokasi saat mulai mengajar dan saat selesai.
                   </p>
                   <div className="rounded-xl border border-border p-3">
-                    <p className="text-sm font-medium text-foreground">Status Wajah</p>
-                    <div className="mt-2 flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between">
-                      {currentTeacher?.hasFace ? (
-                        <span className="inline-flex items-center gap-2 text-sm text-success">
-                          <CheckCircle2 className="w-4 h-4" />
-                          Wajah sudah terdaftar
-                        </span>
-                      ) : (
-                        <span className="inline-flex items-center gap-2 text-sm text-destructive">
-                          <AlertCircle className="w-4 h-4" />
-                          Wajah belum terdaftar
-                        </span>
-                      )}
-                      <Button
-                        variant="outline"
-                        size="sm"
-                        className="gap-2"
-                        onClick={() => window.open("/dashboard/enroll-wajah", "_self")}
-                      >
-                        <Camera className="w-4 h-4" />
-                        Enroll Wajah
-                      </Button>
-                    </div>
+                    <p className="text-sm font-medium text-foreground">Bukti Absensi</p>
+                    <p className="mt-2 text-sm text-muted-foreground">
+                      Setiap absen menyimpan jam, foto langsung dari kamera, dan titik lokasi browser.
+                    </p>
                   </div>
                 </CardContent>
               </Card>
@@ -736,22 +754,24 @@ const AbsensiPengajarPage = () => {
                     <TableRow>
                       <TableHead>Tanggal</TableHead>
                       <TableHead>Jam Datang</TableHead>
+                      <TableHead>Foto Datang</TableHead>
                       <TableHead>Lokasi Datang</TableHead>
                       <TableHead>Jam Keluar</TableHead>
+                      <TableHead>Foto Keluar</TableHead>
                       <TableHead>Lokasi Keluar</TableHead>
                     </TableRow>
                   </TableHeader>
                   <TableBody>
                     {isLoading && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center text-muted-foreground">
                           Memuat data...
                         </TableCell>
                       </TableRow>
                     )}
                     {!isLoading && recentAttendance.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={5} className="text-center text-muted-foreground">
+                        <TableCell colSpan={7} className="text-center text-muted-foreground">
                           Belum ada riwayat absensi.
                         </TableCell>
                       </TableRow>
@@ -760,8 +780,10 @@ const AbsensiPengajarPage = () => {
                       <TableRow key={item.id}>
                         <TableCell className="font-medium">{formatDate(item.date)}</TableCell>
                         <TableCell>{item.checkInTime ?? "-"}</TableCell>
+                        <TableCell>{renderPhotoLink(item.checkInPhotoUrl)}</TableCell>
                         <TableCell>{renderLocationLink(item.checkInLocation)}</TableCell>
                         <TableCell>{item.checkOutTime ?? "-"}</TableCell>
+                        <TableCell>{renderPhotoLink(item.checkOutPhotoUrl)}</TableCell>
                         <TableCell>{renderLocationLink(item.checkOutLocation)}</TableCell>
                       </TableRow>
                     ))}
@@ -846,8 +868,10 @@ const AbsensiPengajarPage = () => {
                       <TableHead>Pengajar</TableHead>
                       <TableHead>Kelas</TableHead>
                       <TableHead>Jam Datang</TableHead>
+                      <TableHead>Foto Datang</TableHead>
                       <TableHead>Lokasi Datang</TableHead>
                       <TableHead>Jam Keluar</TableHead>
+                      <TableHead>Foto Keluar</TableHead>
                       <TableHead>Lokasi Keluar</TableHead>
                       <TableHead>Status</TableHead>
                     </TableRow>
@@ -855,14 +879,14 @@ const AbsensiPengajarPage = () => {
                   <TableBody>
                     {isLoading && (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center text-muted-foreground">
                           Memuat data...
                         </TableCell>
                       </TableRow>
                     )}
                     {!isLoading && teacherRows.length === 0 && (
                       <TableRow>
-                        <TableCell colSpan={7} className="text-center text-muted-foreground">
+                        <TableCell colSpan={9} className="text-center text-muted-foreground">
                           Belum ada data pengajar.
                         </TableCell>
                       </TableRow>
@@ -881,8 +905,10 @@ const AbsensiPengajarPage = () => {
                             : "-"}
                         </TableCell>
                         <TableCell>{teacher.attendance?.checkInTime ?? "-"}</TableCell>
+                        <TableCell>{renderPhotoLink(teacher.attendance?.checkInPhotoUrl)}</TableCell>
                         <TableCell>{renderLocationLink(teacher.attendance?.checkInLocation)}</TableCell>
                         <TableCell>{teacher.attendance?.checkOutTime ?? "-"}</TableCell>
+                        <TableCell>{renderPhotoLink(teacher.attendance?.checkOutPhotoUrl)}</TableCell>
                         <TableCell>{renderLocationLink(teacher.attendance?.checkOutLocation)}</TableCell>
                         <TableCell>{renderStatusBadge(teacher.status)}</TableCell>
                       </TableRow>
@@ -1038,8 +1064,10 @@ const AbsensiPengajarPage = () => {
                         <TableHead>Pengajar</TableHead>
                         <TableHead>Kelas</TableHead>
                         <TableHead>Jam Datang</TableHead>
+                        <TableHead>Foto Datang</TableHead>
                         <TableHead>Lokasi Datang</TableHead>
                         <TableHead>Jam Keluar</TableHead>
+                        <TableHead>Foto Keluar</TableHead>
                         <TableHead>Lokasi Keluar</TableHead>
                         <TableHead>Status</TableHead>
                       </TableRow>
@@ -1047,14 +1075,14 @@ const AbsensiPengajarPage = () => {
                     <TableBody>
                       {isRecapLoading && (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center text-muted-foreground">
+                          <TableCell colSpan={10} className="text-center text-muted-foreground">
                             Memuat detail rekap...
                           </TableCell>
                         </TableRow>
                       )}
                       {!isRecapLoading && flatRecapRows.length === 0 && (
                         <TableRow>
-                          <TableCell colSpan={8} className="text-center text-muted-foreground">
+                          <TableCell colSpan={10} className="text-center text-muted-foreground">
                             Detail rekap belum tersedia.
                           </TableCell>
                         </TableRow>
@@ -1065,8 +1093,10 @@ const AbsensiPengajarPage = () => {
                           <TableCell className="font-medium text-foreground">{item.fullName}</TableCell>
                           <TableCell>{item.classes}</TableCell>
                           <TableCell>{item.checkInTime ?? "-"}</TableCell>
+                          <TableCell>{renderPhotoLink(item.checkInPhotoUrl)}</TableCell>
                           <TableCell>{renderLocationLink(item.checkInLocation)}</TableCell>
                           <TableCell>{item.checkOutTime ?? "-"}</TableCell>
+                          <TableCell>{renderPhotoLink(item.checkOutPhotoUrl)}</TableCell>
                           <TableCell>{renderLocationLink(item.checkOutLocation)}</TableCell>
                           <TableCell>{renderStatusBadge(item.status)}</TableCell>
                         </TableRow>
@@ -1091,11 +1121,11 @@ const AbsensiPengajarPage = () => {
       >
         <DialogContent className="max-w-2xl">
           <DialogHeader>
-            <DialogTitle>Scan Wajah Pengajar</DialogTitle>
+            <DialogTitle>Ambil Foto Absensi</DialogTitle>
             <DialogDescription>
               {pendingAction === "check-out"
-                ? "Arahkan wajah ke kamera dan aktifkan lokasi untuk mencatat jam pulang."
-                : "Arahkan wajah ke kamera dan aktifkan lokasi untuk mencatat jam datang."}
+                ? "Ambil foto langsung dan aktifkan lokasi untuk mencatat jam pulang."
+                : "Ambil foto langsung dan aktifkan lokasi untuk mencatat jam datang."}
             </DialogDescription>
           </DialogHeader>
           <div className="flex flex-col gap-4">
@@ -1111,9 +1141,9 @@ const AbsensiPengajarPage = () => {
             <div className="rounded-lg border border-border p-3 text-sm text-muted-foreground">
               <p className="font-medium text-foreground">{currentTeacher?.fullName ?? "Pengajar"}</p>
               <p>
-                {isRecognizing
-                  ? "Mendeteksi wajah dari beberapa frame..."
-                  : "Pastikan wajah terlihat jelas dan pencahayaan cukup."}
+                {isCapturing || isSaving
+                  ? "Menyimpan foto dan lokasi absensi..."
+                  : "Pastikan foto terlihat jelas dan pencahayaan cukup."}
               </p>
             </div>
           </div>
@@ -1121,22 +1151,22 @@ const AbsensiPengajarPage = () => {
             <Button
               variant="outline"
               onClick={() => setIsCameraOpen(false)}
-              disabled={isRecognizing || isSaving}
+              disabled={isCapturing || isSaving}
             >
               Tutup
             </Button>
             <Button
               variant="gradient"
               className="gap-2"
-              onClick={handleFaceScan}
-              disabled={isRecognizing || isSaving || !pendingAction}
+              onClick={handlePhotoCapture}
+              disabled={isCapturing || isSaving || !pendingAction}
             >
               <Camera className="w-4 h-4" />
-              {isRecognizing || isSaving
-                ? "Mendeteksi..."
+              {isCapturing || isSaving
+                ? "Menyimpan..."
                 : pendingAction === "check-out"
-                  ? "Scan Pulang"
-                  : "Scan Datang"}
+                  ? "Simpan Pulang"
+                  : "Simpan Datang"}
             </Button>
           </DialogFooter>
         </DialogContent>

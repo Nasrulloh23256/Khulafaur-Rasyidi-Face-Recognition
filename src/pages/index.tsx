@@ -31,8 +31,8 @@ const brandName = "Ohm Study Club Attendance";
 const features = [
   {
     icon: Camera,
-    title: "Absensi Wajah",
-    description: "Pencatatan hadir siswa lebih cepat dengan verifikasi wajah di dashboard.",
+    title: "Absensi Foto & Lokasi",
+    description: "Pencatatan hadir lebih jelas dengan bukti foto langsung dan titik lokasi.",
   },
   {
     icon: Users,
@@ -210,7 +210,7 @@ const Index = () => {
                 >
                   <Sparkles className="h-4 w-4" />
                   <ShinyText
-                    text="Absensi digital berbasis face recognition"
+                    text="Absensi digital berbasis foto dan lokasi"
                     className="text-sm font-medium"
                     color="currentColor"
                     shineColor="rgba(226, 232, 240, 0.95)"
@@ -424,7 +424,7 @@ const Index = () => {
                 <Shield className="mb-6 h-10 w-10 opacity-90" />
                 <h3 className="text-2xl font-extrabold">Akses dibuat ringkas untuk pengajar.</h3>
                 <p className="mt-4 leading-7 text-primary-foreground/80">
-                  Dashboard guru diarahkan ke kehadiran, kelas, siswa, dan enroll wajah. Area admin tetap terpisah
+                  Dashboard guru diarahkan ke kehadiran, kelas, siswa, dan absensi pengajar. Area admin tetap terpisah
                   untuk pengelolaan data lengkap.
                 </p>
                 <Button asChild variant="accent" size="lg" className="mt-7">
