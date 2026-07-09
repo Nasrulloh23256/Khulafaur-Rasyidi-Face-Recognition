@@ -1,7 +1,9 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { getAttendanceAreaStatus } from "@/lib/attendance-area";
 import { saveBase64Image } from "@/lib/image-storage";
-import { ensureStudentAttendanceColumns } from "@/lib/student-attendance";
+import { ensureStudentAttendanceColumns, formatStudentAttendanceTime } from "@/lib/student-attendance";
+import { sendStudentAttendanceWhatsApp } from "@/lib/whatsapp";
 
 export const config = {
   api: {
@@ -46,6 +48,41 @@ const saveAttendancePhoto = async (value: unknown) => {
   return saveBase64Image(value.trim(), { folder: "uploads/student-attendance" });
 };
 
+const getHeaderValue = (value: string | string[] | undefined) => {
+  if (Array.isArray(value)) return value[0];
+  return value;
+};
+
+const getRequestBaseUrl = (req: NextApiRequest) => {
+  const configuredUrl = process.env.APP_URL?.trim() || process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (configuredUrl) {
+    return configuredUrl.replace(/\/$/, "");
+  }
+
+  const host =
+    getHeaderValue(req.headers["x-forwarded-host"]) ??
+    getHeaderValue(req.headers.host) ??
+    process.env.VERCEL_URL;
+  if (!host) return "";
+
+  const protocol = getHeaderValue(req.headers["x-forwarded-proto"]) ?? (host.includes("localhost") ? "http" : "https");
+  return `${protocol}://${host}`.replace(/\/$/, "");
+};
+
+const buildPhotoUrl = (req: NextApiRequest, attendanceId: string) => {
+  const baseUrl = getRequestBaseUrl(req);
+  return baseUrl ? `${baseUrl}/api/attendance/photo/${attendanceId}` : "";
+};
+
+const buildMapsUrl = (location: AttendanceLocation) =>
+  `https://www.google.com/maps?q=${location.latitude},${location.longitude}`;
+
+const formatAreaStatus = (location: AttendanceLocation) => {
+  const areaStatus = getAttendanceAreaStatus(location);
+  if (!areaStatus) return "-";
+  return `${areaStatus.label} (${areaStatus.distanceMeters} m dari bimbel, radius ${areaStatus.radiusMeters} m)`;
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await ensureStudentAttendanceColumns();
 
@@ -71,7 +108,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
   const student = await prisma.student.findUnique({
     where: { id: studentId },
-    select: { id: true, classId: true },
+    select: {
+      id: true,
+      classId: true,
+      fullName: true,
+      guardianPhone: true,
+    },
   });
 
   if (!student) {
@@ -82,7 +124,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "Siswa tidak berada di kelas ini" });
   }
 
-  const kelas = await prisma.class.findUnique({ where: { id: classId }, select: { id: true } });
+  const kelas = await prisma.class.findUnique({ where: { id: classId }, select: { id: true, name: true } });
   if (!kelas) {
     return res.status(404).json({ error: "Kelas tidak ditemukan" });
   }
@@ -140,5 +182,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(500).json({ error: "Gagal menyimpan absensi" });
   }
 
-  return res.status(200).json(attendance);
+  let whatsappNotification = null;
+  if (isPresent && attendanceLocation) {
+    whatsappNotification = await sendStudentAttendanceWhatsApp({
+      to: student.guardianPhone,
+      studentName: student.fullName,
+      className: kelas.name,
+      checkInTime: formatStudentAttendanceTime(attendance.checkInTime) ?? "-",
+      areaStatus: formatAreaStatus(attendanceLocation),
+      photoUrl: buildPhotoUrl(req, attendance.id),
+      mapsUrl: buildMapsUrl(attendanceLocation),
+    });
+
+    if (!whatsappNotification.sent && !whatsappNotification.skipped) {
+      console.warn("Gagal mengirim notifikasi WhatsApp absensi siswa:", whatsappNotification.reason);
+    }
+  }
+
+  return res.status(200).json({ ...attendance, whatsappNotification });
 }
