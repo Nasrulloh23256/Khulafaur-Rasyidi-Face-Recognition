@@ -2,6 +2,7 @@ import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import {
   ensureStudentAttendanceColumns,
+  serializeStudentAttendanceAreaStatus,
   formatStudentAttendanceTime,
   serializeStudentAttendanceLocation,
 } from "@/lib/student-attendance";
@@ -78,6 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       checkInTime: formatStudentAttendanceTime(attendance?.checkInTime ?? null),
       checkInPhotoUrl: attendance?.checkInPhotoUrl ?? null,
       checkInLocation: serializeStudentAttendanceLocation(attendance),
+      checkInAreaStatus: serializeStudentAttendanceAreaStatus(attendance),
     };
   });
 

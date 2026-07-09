@@ -38,6 +38,13 @@ type AttendanceLocation = {
   accuracy: number | null;
 };
 
+type AttendanceAreaStatus = {
+  isInside: boolean;
+  distanceMeters: number;
+  radiusMeters: number;
+  label: "Di area" | "Di luar area";
+};
+
 type AttendanceStatus = "PRESENT" | "ABSENT" | "SICK" | "PERMIT" | null;
 
 type AttendanceStudent = {
@@ -50,6 +57,7 @@ type AttendanceStudent = {
   checkInTime: string | null;
   checkInPhotoUrl: string | null;
   checkInLocation: AttendanceLocation | null;
+  checkInAreaStatus: AttendanceAreaStatus | null;
 };
 
 const statusLabel: Record<string, string> = {
@@ -71,6 +79,11 @@ const formatLocationText = (location: AttendanceLocation | null | undefined) => 
 
 const getLocationMapUrl = (location: AttendanceLocation | null | undefined) =>
   location ? `https://www.google.com/maps?q=${location.latitude},${location.longitude}` : "#";
+
+const formatAreaStatusText = (status: AttendanceAreaStatus | null | undefined) => {
+  if (!status) return "-";
+  return `${status.label} (${status.distanceMeters} m dari bimbel, radius ${status.radiusMeters} m)`;
+};
 
 const Kehadiran = () => {
   const { toast } = useToast();
@@ -362,7 +375,10 @@ const Kehadiran = () => {
     }
   };
 
-  const renderLocationLink = (location: AttendanceLocation | null | undefined) => {
+  const renderLocationLink = (
+    location: AttendanceLocation | null | undefined,
+    areaStatus?: AttendanceAreaStatus | null,
+  ) => {
     if (!location) return <span>-</span>;
     return (
       <a
@@ -375,6 +391,11 @@ const Kehadiran = () => {
         <span className="block text-[11px] font-normal text-muted-foreground">
           {formatLocationText(location)}
         </span>
+        {areaStatus && (
+          <span className={areaStatus.isInside ? "block text-[11px] font-semibold text-success" : "block text-[11px] font-semibold text-destructive"}>
+            {formatAreaStatusText(areaStatus)}
+          </span>
+        )}
       </a>
     );
   };
@@ -568,7 +589,7 @@ const Kehadiran = () => {
                               <p>Status: {statusLabel[currentStatus]}</p>
                               <p>Jam masuk: {siswa.checkInTime ?? "-"}</p>
                               <div>Foto: {renderPhotoLink(siswa.checkInPhotoUrl)}</div>
-                              <div>Lokasi: {renderLocationLink(siswa.checkInLocation)}</div>
+                              <div>Lokasi: {renderLocationLink(siswa.checkInLocation, siswa.checkInAreaStatus)}</div>
                             </div>
                           </div>
                         </div>

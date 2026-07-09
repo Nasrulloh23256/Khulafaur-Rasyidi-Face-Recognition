@@ -142,6 +142,8 @@ const buildRangeRecap = async (start: Date, end: Date) => {
         checkOutTime: serialized?.checkOutTime ?? null,
         checkInLocation: serialized?.checkInLocation ?? null,
         checkOutLocation: serialized?.checkOutLocation ?? null,
+        checkInAreaStatus: serialized?.checkInAreaStatus ?? null,
+        checkOutAreaStatus: serialized?.checkOutAreaStatus ?? null,
         checkInPhotoUrl: serialized?.checkInPhotoUrl ?? null,
         checkOutPhotoUrl: serialized?.checkOutPhotoUrl ?? null,
         status,

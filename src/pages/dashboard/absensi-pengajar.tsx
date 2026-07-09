@@ -56,6 +56,13 @@ type AttendanceLocation = {
   accuracy: number | null;
 };
 
+type AttendanceAreaStatus = {
+  isInside: boolean;
+  distanceMeters: number;
+  radiusMeters: number;
+  label: "Di area" | "Di luar area";
+};
+
 type TeacherAttendance = {
   id: string;
   date: string;
@@ -63,6 +70,8 @@ type TeacherAttendance = {
   checkOutTime: string | null;
   checkInLocation: AttendanceLocation | null;
   checkOutLocation: AttendanceLocation | null;
+  checkInAreaStatus: AttendanceAreaStatus | null;
+  checkOutAreaStatus: AttendanceAreaStatus | null;
   checkInPhotoUrl: string | null;
   checkOutPhotoUrl: string | null;
   notes: string | null;
@@ -99,6 +108,8 @@ type RecapDaily = {
   checkOutTime: string | null;
   checkInLocation: AttendanceLocation | null;
   checkOutLocation: AttendanceLocation | null;
+  checkInAreaStatus: AttendanceAreaStatus | null;
+  checkOutAreaStatus: AttendanceAreaStatus | null;
   checkInPhotoUrl: string | null;
   checkOutPhotoUrl: string | null;
   status: TeacherAttendanceStatus;
@@ -170,6 +181,11 @@ const formatLocationText = (location: AttendanceLocation | null | undefined) => 
 
 const getLocationMapUrl = (location: AttendanceLocation | null | undefined) =>
   location ? `https://www.google.com/maps?q=${location.latitude},${location.longitude}` : "-";
+
+const formatAreaStatusText = (status: AttendanceAreaStatus | null | undefined) => {
+  if (!status) return "-";
+  return `${status.label} (${status.distanceMeters} m dari bimbel, radius ${status.radiusMeters} m)`;
+};
 
 const getPhotoCsvValue = (url: string | null | undefined) => {
   if (!url) return "-";
@@ -259,6 +275,8 @@ const AbsensiPengajarPage = () => {
           checkOutTime: item.checkOutTime,
           checkInLocation: item.checkInLocation,
           checkOutLocation: item.checkOutLocation,
+          checkInAreaStatus: item.checkInAreaStatus,
+          checkOutAreaStatus: item.checkOutAreaStatus,
           checkInPhotoUrl: item.checkInPhotoUrl,
           checkOutPhotoUrl: item.checkOutPhotoUrl,
           status: item.status,
@@ -570,9 +588,11 @@ const AbsensiPengajarPage = () => {
       "Jam Datang",
       "Foto Datang",
       "Lokasi Datang",
+      "Area Datang",
       "Jam Keluar",
       "Foto Keluar",
       "Lokasi Keluar",
+      "Area Keluar",
       "Status",
     ];
     const rows = flatRecapRows.map((item) => [
@@ -583,9 +603,11 @@ const AbsensiPengajarPage = () => {
       item.checkInTime ?? "-",
       getPhotoCsvValue(item.checkInPhotoUrl),
       getLocationMapUrl(item.checkInLocation),
+      formatAreaStatusText(item.checkInAreaStatus),
       item.checkOutTime ?? "-",
       getPhotoCsvValue(item.checkOutPhotoUrl),
       getLocationMapUrl(item.checkOutLocation),
+      formatAreaStatusText(item.checkOutAreaStatus),
       statusLabel[item.status],
     ]);
     const csvContent = [headers, ...rows]
@@ -612,7 +634,10 @@ const AbsensiPengajarPage = () => {
     return <Badge variant="secondary">{statusLabel[status]}</Badge>;
   };
 
-  const renderLocationLink = (location: AttendanceLocation | null | undefined) => {
+  const renderLocationLink = (
+    location: AttendanceLocation | null | undefined,
+    areaStatus?: AttendanceAreaStatus | null,
+  ) => {
     if (!location) return <span className="text-muted-foreground">-</span>;
 
     return (
@@ -624,6 +649,11 @@ const AbsensiPengajarPage = () => {
       >
         <span>Lihat Maps</span>
         <span className="text-xs font-normal text-muted-foreground">{formatLocationText(location)}</span>
+        {areaStatus && (
+          <span className={areaStatus.isInside ? "text-xs font-semibold text-success" : "text-xs font-semibold text-destructive"}>
+            {formatAreaStatusText(areaStatus)}
+          </span>
+        )}
       </a>
     );
   };
@@ -679,7 +709,9 @@ const AbsensiPengajarPage = () => {
                     </div>
                     <div className="rounded-xl border border-border p-4">
                       <p className="text-sm text-muted-foreground">Lokasi Datang</p>
-                      <div className="mt-2">{renderLocationLink(todayAttendance?.checkInLocation)}</div>
+                      <div className="mt-2">
+                        {renderLocationLink(todayAttendance?.checkInLocation, todayAttendance?.checkInAreaStatus)}
+                      </div>
                     </div>
                     <div className="rounded-xl border border-border p-4">
                       <p className="text-sm text-muted-foreground">Foto Datang</p>
@@ -687,7 +719,9 @@ const AbsensiPengajarPage = () => {
                     </div>
                     <div className="rounded-xl border border-border p-4">
                       <p className="text-sm text-muted-foreground">Lokasi Keluar</p>
-                      <div className="mt-2">{renderLocationLink(todayAttendance?.checkOutLocation)}</div>
+                      <div className="mt-2">
+                        {renderLocationLink(todayAttendance?.checkOutLocation, todayAttendance?.checkOutAreaStatus)}
+                      </div>
                     </div>
                     <div className="rounded-xl border border-border p-4">
                       <p className="text-sm text-muted-foreground">Foto Keluar</p>
@@ -781,10 +815,10 @@ const AbsensiPengajarPage = () => {
                         <TableCell className="font-medium">{formatDate(item.date)}</TableCell>
                         <TableCell>{item.checkInTime ?? "-"}</TableCell>
                         <TableCell>{renderPhotoLink(item.checkInPhotoUrl)}</TableCell>
-                        <TableCell>{renderLocationLink(item.checkInLocation)}</TableCell>
+                        <TableCell>{renderLocationLink(item.checkInLocation, item.checkInAreaStatus)}</TableCell>
                         <TableCell>{item.checkOutTime ?? "-"}</TableCell>
                         <TableCell>{renderPhotoLink(item.checkOutPhotoUrl)}</TableCell>
-                        <TableCell>{renderLocationLink(item.checkOutLocation)}</TableCell>
+                        <TableCell>{renderLocationLink(item.checkOutLocation, item.checkOutAreaStatus)}</TableCell>
                       </TableRow>
                     ))}
                   </TableBody>
@@ -906,10 +940,20 @@ const AbsensiPengajarPage = () => {
                         </TableCell>
                         <TableCell>{teacher.attendance?.checkInTime ?? "-"}</TableCell>
                         <TableCell>{renderPhotoLink(teacher.attendance?.checkInPhotoUrl)}</TableCell>
-                        <TableCell>{renderLocationLink(teacher.attendance?.checkInLocation)}</TableCell>
+                        <TableCell>
+                          {renderLocationLink(
+                            teacher.attendance?.checkInLocation,
+                            teacher.attendance?.checkInAreaStatus,
+                          )}
+                        </TableCell>
                         <TableCell>{teacher.attendance?.checkOutTime ?? "-"}</TableCell>
                         <TableCell>{renderPhotoLink(teacher.attendance?.checkOutPhotoUrl)}</TableCell>
-                        <TableCell>{renderLocationLink(teacher.attendance?.checkOutLocation)}</TableCell>
+                        <TableCell>
+                          {renderLocationLink(
+                            teacher.attendance?.checkOutLocation,
+                            teacher.attendance?.checkOutAreaStatus,
+                          )}
+                        </TableCell>
                         <TableCell>{renderStatusBadge(teacher.status)}</TableCell>
                       </TableRow>
                     ))}
@@ -1094,10 +1138,10 @@ const AbsensiPengajarPage = () => {
                           <TableCell>{item.classes}</TableCell>
                           <TableCell>{item.checkInTime ?? "-"}</TableCell>
                           <TableCell>{renderPhotoLink(item.checkInPhotoUrl)}</TableCell>
-                          <TableCell>{renderLocationLink(item.checkInLocation)}</TableCell>
+                          <TableCell>{renderLocationLink(item.checkInLocation, item.checkInAreaStatus)}</TableCell>
                           <TableCell>{item.checkOutTime ?? "-"}</TableCell>
                           <TableCell>{renderPhotoLink(item.checkOutPhotoUrl)}</TableCell>
-                          <TableCell>{renderLocationLink(item.checkOutLocation)}</TableCell>
+                          <TableCell>{renderLocationLink(item.checkOutLocation, item.checkOutAreaStatus)}</TableCell>
                           <TableCell>{renderStatusBadge(item.status)}</TableCell>
                         </TableRow>
                       ))}

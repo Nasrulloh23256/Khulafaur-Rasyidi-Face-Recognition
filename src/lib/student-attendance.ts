@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getAttendanceAreaStatus } from "@/lib/attendance-area";
 
 let ensureColumnsPromise: Promise<void> | null = null;
 
@@ -62,3 +63,13 @@ export const serializeStudentAttendanceLocation = (
     accuracy: attendance.checkInAccuracy ?? null,
   };
 };
+
+export const serializeStudentAttendanceAreaStatus = (
+  attendance:
+    | {
+        checkInLatitude?: number | null;
+        checkInLongitude?: number | null;
+      }
+    | null
+    | undefined,
+) => getAttendanceAreaStatus(serializeStudentAttendanceLocation(attendance));

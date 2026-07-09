@@ -1,4 +1,5 @@
 import { prisma } from "@/lib/prisma";
+import { getAttendanceAreaStatus } from "@/lib/attendance-area";
 
 let ensureTablePromise: Promise<void> | null = null;
 
@@ -52,28 +53,33 @@ export const serializeTeacherAttendance = (
     | undefined,
 ) => {
   if (!attendance) return null;
+  const checkInLocation =
+    typeof attendance.checkInLatitude === "number" && typeof attendance.checkInLongitude === "number"
+      ? {
+          latitude: attendance.checkInLatitude,
+          longitude: attendance.checkInLongitude,
+          accuracy: attendance.checkInAccuracy ?? null,
+        }
+      : null;
+  const checkOutLocation =
+    typeof attendance.checkOutLatitude === "number" && typeof attendance.checkOutLongitude === "number"
+      ? {
+          latitude: attendance.checkOutLatitude,
+          longitude: attendance.checkOutLongitude,
+          accuracy: attendance.checkOutAccuracy ?? null,
+        }
+      : null;
+
   return {
     id: attendance.id,
     date: attendance.date.toISOString(),
     checkInTime: formatTeacherAttendanceTime(attendance.checkInTime),
     checkOutTime: formatTeacherAttendanceTime(attendance.checkOutTime),
-    checkInLocation:
-      typeof attendance.checkInLatitude === "number" && typeof attendance.checkInLongitude === "number"
-        ? {
-            latitude: attendance.checkInLatitude,
-            longitude: attendance.checkInLongitude,
-            accuracy: attendance.checkInAccuracy ?? null,
-          }
-        : null,
+    checkInLocation,
+    checkInAreaStatus: getAttendanceAreaStatus(checkInLocation),
     checkInPhotoUrl: attendance.checkInPhotoUrl ?? null,
-    checkOutLocation:
-      typeof attendance.checkOutLatitude === "number" && typeof attendance.checkOutLongitude === "number"
-        ? {
-            latitude: attendance.checkOutLatitude,
-            longitude: attendance.checkOutLongitude,
-            accuracy: attendance.checkOutAccuracy ?? null,
-          }
-        : null,
+    checkOutLocation,
+    checkOutAreaStatus: getAttendanceAreaStatus(checkOutLocation),
     checkOutPhotoUrl: attendance.checkOutPhotoUrl ?? null,
     notes: attendance.notes,
   };
