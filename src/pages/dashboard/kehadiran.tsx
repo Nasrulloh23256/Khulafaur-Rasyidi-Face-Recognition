@@ -65,6 +65,7 @@ type AttendanceStudent = {
 type WhatsAppNotification = {
   sent: boolean;
   skipped?: boolean;
+  locationSent?: boolean;
   reason?: string;
 };
 
@@ -342,7 +343,14 @@ const Kehadiran = () => {
 
       const notification = data?.notification as WhatsAppNotification | undefined;
       if (notification?.sent) {
-        toast({ title: "Notifikasi terkirim", description: "Notifikasi absensi telah dikirim ke WhatsApp orang tua/wali." });
+        toast({
+          title: notification.locationSent === false ? "Rincian absensi terkirim" : "Notifikasi terkirim",
+          description:
+            notification.locationSent === false
+              ? notification.reason ?? "Pin lokasi belum terkirim."
+              : "Rincian absensi dan pin lokasi telah dikirim ke WhatsApp orang tua/wali.",
+          ...(notification.locationSent === false ? { variant: "destructive" as const } : {}),
+        });
         return;
       }
 
@@ -400,8 +408,12 @@ const Kehadiran = () => {
       });
       if (result.notification?.sent) {
         toast({
-          title: "Notifikasi terkirim",
-          description: "Notifikasi absensi telah dikirim ke WhatsApp orang tua/wali.",
+          title: result.notification.locationSent === false ? "Rincian absensi terkirim" : "Notifikasi terkirim",
+          description:
+            result.notification.locationSent === false
+              ? result.notification.reason ?? "Pin lokasi belum terkirim."
+              : "Rincian absensi dan pin lokasi telah dikirim ke WhatsApp orang tua/wali.",
+          ...(result.notification.locationSent === false ? { variant: "destructive" as const } : {}),
         });
       } else if (result.notification) {
         toast({
