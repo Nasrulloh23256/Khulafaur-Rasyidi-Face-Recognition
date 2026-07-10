@@ -34,6 +34,14 @@ const saveBase64Image = async (dataUrl: string) => {
 
 const isGender = (value: unknown): value is "MALE" | "FEMALE" => value === "MALE" || value === "FEMALE";
 
+const parseGuardianPhone = (value: unknown) => {
+  if (value === null || value === "") return null;
+  if (typeof value !== "string") return undefined;
+
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 8 && digits.length <= 16 ? value.trim() : undefined;
+};
+
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   const id = typeof req.query.id === "string" ? req.query.id : "";
   if (!id) {
@@ -46,12 +54,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === "PATCH") {
-    const { fullName, studentNumber, gender, guardianName, classId, faceImage, faceDescriptor } = req.body ?? {};
+    const { fullName, studentNumber, gender, guardianName, guardianPhone, classId, faceImage, faceDescriptor } = req.body ?? {};
     const updateData: {
       fullName?: string;
       studentNumber?: string | null;
       gender?: "MALE" | "FEMALE";
       guardianName?: string | null;
+      guardianPhone?: string | null;
       classId?: string | null;
       faceImageUrl?: string | null;
       faceEmbedding?: number[] | null;
@@ -89,6 +98,14 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       } else {
         return res.status(400).json({ error: "Nama orang tua tidak valid" });
       }
+    }
+
+    if (guardianPhone !== undefined) {
+      const resolvedGuardianPhone = parseGuardianPhone(guardianPhone);
+      if (resolvedGuardianPhone === undefined) {
+        return res.status(400).json({ error: "Nomor WhatsApp orang tua tidak valid" });
+      }
+      updateData.guardianPhone = resolvedGuardianPhone;
     }
 
     if (classId !== undefined) {
@@ -146,6 +163,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           studentNumber: true,
           gender: true,
           guardianName: true,
+          guardianPhone: true,
           classId: true,
           faceImageUrl: true,
           faceEmbedding: true,
