@@ -11,25 +11,17 @@ type StudentAttendanceNotificationInput = {
   areaStatus: string;
   photoUrl: string;
   mapsUrl: string;
+  latitude: number;
+  longitude: number;
 };
 
-const getWhatsAppConfig = () => {
-  const accessToken = process.env.WHATSAPP_ACCESS_TOKEN?.trim() ?? "";
-  const phoneNumberId = process.env.WHATSAPP_PHONE_NUMBER_ID?.trim() ?? "";
-  const apiVersion = process.env.WHATSAPP_API_VERSION?.trim() || "v22.0";
-  const templateName = process.env.WHATSAPP_TEMPLATE_NAME?.trim() ?? "";
-  const templateLanguage = process.env.WHATSAPP_TEMPLATE_LANGUAGE?.trim() || "id";
-  const explicitEnabled = process.env.WHATSAPP_ENABLED?.trim().toLowerCase();
-  const enabled = explicitEnabled === "false" ? false : !!accessToken && !!phoneNumberId;
+const getFonnteConfig = () => {
+  const token = process.env.FONNTE_TOKEN?.trim() ?? "";
+  const apiUrl = process.env.FONNTE_API_URL?.trim() || "https://api.fonnte.com/send";
+  const explicitEnabled = process.env.FONNTE_ENABLED?.trim().toLowerCase();
+  const enabled = explicitEnabled === "false" ? false : !!token;
 
-  return {
-    accessToken,
-    phoneNumberId,
-    apiVersion,
-    templateName,
-    templateLanguage,
-    enabled,
-  };
+  return { token, apiUrl, enabled };
 };
 
 export const normalizeWhatsAppPhone = (value: string | null | undefined) => {
@@ -54,51 +46,24 @@ const buildAttendanceMessage = (input: StudentAttendanceNotificationInput) =>
     `Lokasi: ${input.mapsUrl}`,
   ].join("\n");
 
-const buildTemplatePayload = (
-  to: string,
-  input: StudentAttendanceNotificationInput,
-  templateName: string,
-  templateLanguage: string,
-) => ({
-  messaging_product: "whatsapp",
-  to,
-  type: "template",
-  template: {
-    name: templateName,
-    language: { code: templateLanguage },
-    components: [
-      {
-        type: "body",
-        parameters: [
-          { type: "text", text: input.studentName },
-          { type: "text", text: input.className },
-          { type: "text", text: input.checkInTime },
-          { type: "text", text: input.areaStatus },
-          { type: "text", text: input.photoUrl },
-          { type: "text", text: input.mapsUrl },
-        ],
-      },
-    ],
-  },
-});
+const getFonnteDetail = (data: unknown, fallback: string) => {
+  if (!data || typeof data !== "object") return fallback;
+  const detail = (data as { detail?: unknown }).detail;
+  return typeof detail === "string" && detail.trim() !== "" ? detail : fallback;
+};
 
-const buildTextPayload = (to: string, input: StudentAttendanceNotificationInput) => ({
-  messaging_product: "whatsapp",
-  recipient_type: "individual",
-  to,
-  type: "text",
-  text: {
-    preview_url: true,
-    body: buildAttendanceMessage(input),
-  },
-});
+const getFonnteMessageId = (data: unknown) => {
+  if (!data || typeof data !== "object") return undefined;
+  const id = (data as { id?: unknown }).id;
+  return Array.isArray(id) && typeof id[0] === "string" ? id[0] : undefined;
+};
 
 export const sendStudentAttendanceWhatsApp = async (
   input: StudentAttendanceNotificationInput,
 ): Promise<WhatsAppNotificationResult> => {
-  const config = getWhatsAppConfig();
+  const config = getFonnteConfig();
   if (!config.enabled) {
-    return { sent: false, skipped: true, reason: "WhatsApp belum dikonfigurasi" };
+    return { sent: false, skipped: true, reason: "Fonnte belum dikonfigurasi" };
   }
 
   const to = normalizeWhatsAppPhone(input.to);
@@ -106,41 +71,40 @@ export const sendStudentAttendanceWhatsApp = async (
     return { sent: false, skipped: true, reason: "Nomor WhatsApp orang tua kosong" };
   }
 
-  const payload = config.templateName
-    ? buildTemplatePayload(to, input, config.templateName, config.templateLanguage)
-    : buildTextPayload(to, input);
+  const formData = new FormData();
+  formData.set("target", to);
+  formData.set("message", buildAttendanceMessage(input));
+  formData.set("countryCode", "0");
+  formData.set("location", `${input.latitude},${input.longitude}`);
+  formData.set("connectOnly", "true");
 
   try {
-    const response = await fetch(
-      `https://graph.facebook.com/${config.apiVersion}/${config.phoneNumberId}/messages`,
-      {
-        method: "POST",
-        headers: {
-          Authorization: `Bearer ${config.accessToken}`,
-          "Content-Type": "application/json",
-        },
-        body: JSON.stringify(payload),
-      },
-    );
-    const data = await response.json().catch(() => null);
+    const response = await fetch(config.apiUrl, {
+      method: "POST",
+      headers: { Authorization: config.token },
+      body: formData,
+    });
+    const data: unknown = await response.json().catch(() => null);
+    const isSuccess =
+      response.ok &&
+      !!data &&
+      typeof data === "object" &&
+      (data as { status?: unknown }).status === true;
 
-    if (!response.ok) {
-      const message =
-        typeof data?.error?.message === "string"
-          ? data.error.message
-          : `WhatsApp API error ${response.status}`;
-      return { sent: false, skipped: false, reason: message };
+    if (!isSuccess) {
+      return {
+        sent: false,
+        skipped: false,
+        reason: getFonnteDetail(data, `Fonnte API error ${response.status}`),
+      };
     }
 
-    return {
-      sent: true,
-      providerMessageId: typeof data?.messages?.[0]?.id === "string" ? data.messages[0].id : undefined,
-    };
+    return { sent: true, providerMessageId: getFonnteMessageId(data) };
   } catch (error) {
     return {
       sent: false,
       skipped: false,
-      reason: error instanceof Error ? error.message : "Gagal mengirim WhatsApp",
+      reason: error instanceof Error ? error.message : "Gagal mengirim WhatsApp melalui Fonnte",
     };
   }
 };

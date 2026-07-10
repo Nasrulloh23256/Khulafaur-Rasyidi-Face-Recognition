@@ -192,6 +192,8 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       areaStatus: formatAreaStatus(attendanceLocation),
       photoUrl: buildPhotoUrl(req, attendance.id),
       mapsUrl: buildMapsUrl(attendanceLocation),
+      latitude: attendanceLocation.latitude,
+      longitude: attendanceLocation.longitude,
     });
 
     if (!whatsappNotification.sent && !whatsappNotification.skipped) {
