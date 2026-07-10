@@ -1,13 +1,15 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { getOperationalClassPeriod } from "@/lib/class-period";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   if (req.method === "GET") {
     const classes = await prisma.class.findMany({
       orderBy: { name: "asc" },
-      include: {
-        academicYear: true,
-        homeroomTeacher: true,
+      select: {
+        id: true,
+        name: true,
+        homeroomTeacher: { select: { id: true, fullName: true } },
         _count: { select: { students: true } },
       },
     });
@@ -16,14 +18,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === "POST") {
-    const { name, academicYearId, homeroomTeacherId } = req.body ?? {};
+    const { name, homeroomTeacherId } = req.body ?? {};
 
     if (typeof name !== "string" || name.trim() === "") {
       return res.status(400).json({ error: "Nama kelas wajib diisi" });
-    }
-
-    if (typeof academicYearId !== "string" || academicYearId.trim() === "") {
-      return res.status(400).json({ error: "Tahun ajaran wajib dipilih" });
     }
 
     let resolvedTeacherId: string | null = null;
@@ -39,15 +37,18 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
+      const period = await getOperationalClassPeriod();
       const createdClass = await prisma.class.create({
         data: {
           name: name.trim(),
-          academicYearId,
+          academicYearId: period.academicYearId,
+          semesterId: period.semesterId,
           homeroomTeacherId: resolvedTeacherId,
         },
-        include: {
-          academicYear: true,
-          homeroomTeacher: true,
+        select: {
+          id: true,
+          name: true,
+          homeroomTeacher: { select: { id: true, fullName: true } },
           _count: { select: { students: true } },
         },
       });
@@ -56,7 +57,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     } catch (error) {
       const maybeError = error as { code?: string };
       if (maybeError?.code === "P2002") {
-        return res.status(409).json({ error: "Kelas sudah terdaftar untuk tahun ajaran tersebut" });
+        return res.status(409).json({ error: "Nama kelas sudah terdaftar" });
       }
       return res.status(500).json({ error: "Gagal menyimpan kelas" });
     }

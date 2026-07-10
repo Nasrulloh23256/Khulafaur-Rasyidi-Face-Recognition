@@ -49,7 +49,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const updated = await prisma.class.findUnique({
       where: { id },
       include: {
-        academicYear: true,
         homeroomTeacher: true,
         _count: { select: { students: true } },
       },

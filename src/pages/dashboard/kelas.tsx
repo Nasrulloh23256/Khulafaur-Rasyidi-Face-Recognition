@@ -44,12 +44,6 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import type { CheckedState } from "@radix-ui/react-checkbox";
 
-type AcademicYear = {
-  id: string;
-  name: string;
-  isActive?: boolean;
-};
-
 type Teacher = {
   id: string;
   fullName: string;
@@ -65,7 +59,6 @@ type Student = {
 type ClassItem = {
   id: string;
   name: string;
-  academicYear: AcademicYear;
   homeroomTeacher: Teacher | null;
   _count: { students: number };
 };
@@ -73,7 +66,6 @@ type ClassItem = {
 const Kelas = () => {
   const { toast } = useToast();
   const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [years, setYears] = useState<AcademicYear[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [unassignedStudents, setUnassignedStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -88,7 +80,6 @@ const Kelas = () => {
   const [editTarget, setEditTarget] = useState<ClassItem | null>(null);
   const [form, setForm] = useState({
     name: "",
-    academicYearId: "",
     homeroomTeacherId: "none",
   });
   const [editForm, setEditForm] = useState({
@@ -123,18 +114,15 @@ const Kelas = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [classRes, yearRes, teacherRes] = await Promise.all([
+      const [classRes, teacherRes] = await Promise.all([
         fetch("/api/classes"),
-        fetch("/api/academic-years"),
         fetch("/api/teachers"),
       ]);
 
       const classData = await classRes.json();
-      const yearData = await yearRes.json();
       const teacherData = await teacherRes.json();
 
       if (classRes.ok) setClasses(classData);
-      if (yearRes.ok) setYears(yearData);
       if (teacherRes.ok) setTeachers(teacherData);
     } catch (error) {
       toast({
@@ -177,15 +165,6 @@ const Kelas = () => {
   useEffect(() => {
     loadData();
   }, []);
-
-  useEffect(() => {
-    if (!form.academicYearId && years.length > 0) {
-      const activeYear = years.find((year) => year.isActive) ?? years[0];
-      if (activeYear) {
-        setForm((prev) => ({ ...prev, academicYearId: activeYear.id }));
-      }
-    }
-  }, [years, form.academicYearId]);
 
   useEffect(() => {
     if (isDialogOpen) {
@@ -232,10 +211,10 @@ const Kelas = () => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!form.name || !form.academicYearId) {
+    if (!form.name) {
       toast({
         title: "Data belum lengkap",
-        description: "Nama kelas dan tahun ajaran wajib diisi",
+        description: "Nama kelas wajib diisi",
         variant: "destructive",
       });
       return;
@@ -248,7 +227,6 @@ const Kelas = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: form.name,
-          academicYearId: form.academicYearId,
           homeroomTeacherId: form.homeroomTeacherId === "none" ? null : form.homeroomTeacherId,
         }),
       });
@@ -269,7 +247,7 @@ const Kelas = () => {
         description: "Kelas berhasil ditambahkan",
       });
 
-      setForm((prev) => ({ ...prev, name: "", homeroomTeacherId: "none" }));
+      setForm({ name: "", homeroomTeacherId: "none" });
       setIsDialogOpen(false);
       loadData();
     } catch (error) {
@@ -401,30 +379,6 @@ const Kelas = () => {
                 </div>
 
                 <div className="space-y-2">
-                  <Label>Tahun Ajaran</Label>
-                  <Select
-                    value={form.academicYearId}
-                    onValueChange={(value) => setForm((prev) => ({ ...prev, academicYearId: value }))}
-                  >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih tahun ajaran" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {years.length === 0 ? (
-                      <SelectItem value="empty" disabled>
-                        Belum ada tahun ajaran
-                      </SelectItem>
-                    ) : (
-                      years.map((year) => (
-                        <SelectItem key={year.id} value={year.id}>
-                          {year.name}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-                <div className="space-y-2">
                   <Label>Pengajar (opsional)</Label>
                   <Select
                     value={form.homeroomTeacherId}
@@ -509,7 +463,6 @@ const Kelas = () => {
                   <TableHead>No</TableHead>
                   <TableHead>Nama Kelas</TableHead>
                   <TableHead>Pengajar</TableHead>
-                  <TableHead>Tahun Ajaran</TableHead>
                   <TableHead className="text-center">Total Siswa</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
@@ -517,14 +470,14 @@ const Kelas = () => {
               <TableBody>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
                       Memuat data...
                     </TableCell>
                   </TableRow>
                 )}
                 {!isLoading && filteredClasses.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center text-muted-foreground">
+                    <TableCell colSpan={5} className="text-center text-muted-foreground">
                       Belum ada kelas.
                     </TableCell>
                   </TableRow>
@@ -534,7 +487,6 @@ const Kelas = () => {
                     <TableCell className="font-medium">{index + 1}</TableCell>
                     <TableCell className="font-semibold text-foreground">{kelas.name}</TableCell>
                     <TableCell>{kelas.homeroomTeacher?.fullName ?? "-"}</TableCell>
-                    <TableCell>{kelas.academicYear?.name ?? "-"}</TableCell>
                     <TableCell className="text-center">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-foreground font-semibold text-sm">
                         {kelas._count?.students ?? 0}

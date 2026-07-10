@@ -30,14 +30,6 @@ type ClassItem = {
   name: string;
 };
 
-type AcademicYear = {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-};
-
 type RecapStudent = {
   id: string;
   fullName: string;
@@ -114,9 +106,7 @@ const parseMonthValue = (value: string) => {
 const RekapAbsensi = () => {
   const { toast } = useToast();
   const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [years, setYears] = useState<AcademicYear[]>([]);
   const [selectedClassId, setSelectedClassId] = useState("");
-  const [selectedYearId, setSelectedYearId] = useState("");
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedWeek, setSelectedWeek] = useState("all");
   const [dates, setDates] = useState<string[]>([]);
@@ -129,17 +119,13 @@ const RekapAbsensi = () => {
     [classes, selectedClassId],
   );
 
-  const selectedYear = useMemo(
-    () => years.find((year) => year.id === selectedYearId) ?? null,
-    [years, selectedYearId],
-  );
-
   const baseRange = useMemo(() => {
-    if (!selectedYear) return null;
-    const start = new Date(selectedYear.startDate);
-    const end = new Date(selectedYear.endDate);
-    return { start, end };
-  }, [selectedYear]);
+    const currentYear = new Date().getFullYear();
+    return {
+      start: new Date(currentYear, 0, 1),
+      end: new Date(currentYear, 11, 31),
+    };
+  }, []);
 
   const monthOptions = useMemo(() => {
     if (!baseRange) return [];
@@ -184,19 +170,14 @@ const RekapAbsensi = () => {
   useEffect(() => {
     const loadFilters = async () => {
       try {
-        const [classRes, yearRes] = await Promise.all([
-          fetch("/api/classes"),
-          fetch("/api/academic-years"),
-        ]);
+        const classRes = await fetch("/api/classes");
         const classData = await classRes.json();
-        const yearData = await yearRes.json();
 
         if (classRes.ok) setClasses(classData);
-        if (yearRes.ok) setYears(yearData);
       } catch (error) {
         toast({
           title: "Gagal memuat filter",
-          description: "Tidak bisa mengambil data kelas atau tahun ajaran",
+          description: "Tidak bisa mengambil data kelas",
           variant: "destructive",
         });
       }
@@ -209,13 +190,6 @@ const RekapAbsensi = () => {
       setSelectedClassId(classes[0].id);
     }
   }, [classes, selectedClassId]);
-
-  useEffect(() => {
-    if (!selectedYearId && years.length > 0) {
-      const activeYear = years.find((year) => year.isActive) ?? years[0];
-      if (activeYear) setSelectedYearId(activeYear.id);
-    }
-  }, [years, selectedYearId]);
 
   useEffect(() => {
     if (monthOptions.length === 0) {

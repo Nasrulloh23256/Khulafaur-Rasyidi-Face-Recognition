@@ -19,14 +19,6 @@ import {
 import DashboardLayout from "@/components/DashboardLayout";
 import { useToast } from "@/hooks/use-toast";
 
-type AcademicYear = {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-};
-
 type ChartItem = {
   bulan: string;
   hadir: number;
@@ -97,8 +89,6 @@ const Laporan = () => {
   const { toast } = useToast();
   const [filterMinggu, setFilterMinggu] = useState("all");
   const [filterBulan, setFilterBulan] = useState("all");
-  const [filterTahunAjaran, setFilterTahunAjaran] = useState("");
-  const [years, setYears] = useState<AcademicYear[]>([]);
   const [summary, setSummary] = useState<ReportSummary>({
     averageAttendance: 0,
     totalStudents: 0,
@@ -109,35 +99,6 @@ const Laporan = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isExporting, setIsExporting] = useState(false);
 
-  const selectedYear = useMemo(
-    () => years.find((year) => year.id === filterTahunAjaran) ?? null,
-    [years, filterTahunAjaran],
-  );
-
-  useEffect(() => {
-    const loadFilters = async () => {
-      try {
-        const yearRes = await fetch("/api/academic-years");
-        const yearData = await yearRes.json();
-
-        if (yearRes.ok) {
-          setYears(yearData);
-          const activeYear = yearData.find((item: AcademicYear) => item.isActive) ?? yearData[0];
-          if (activeYear?.id) {
-            setFilterTahunAjaran(activeYear.id);
-          }
-        }
-      } catch (error) {
-        toast({
-          title: "Gagal memuat filter",
-          description: "Tidak bisa mengambil data tahun ajaran",
-          variant: "destructive",
-        });
-      }
-    };
-    loadFilters();
-  }, [toast]);
-
   useEffect(() => {
     if (filterBulan === "all" && filterMinggu !== "all") {
       setFilterMinggu("all");
@@ -145,9 +106,9 @@ const Laporan = () => {
   }, [filterBulan, filterMinggu]);
 
   const dateRange = useMemo(() => {
-    if (!selectedYear) return null;
-    const baseStart = new Date(selectedYear.startDate);
-    const baseEnd = new Date(selectedYear.endDate);
+    const currentYear = new Date().getFullYear();
+    const baseStart = new Date(currentYear, 0, 1);
+    const baseEnd = new Date(currentYear, 11, 31);
 
     let rangeStart = startOfDay(baseStart);
     let rangeEnd = endOfDay(baseEnd);
@@ -179,7 +140,7 @@ const Laporan = () => {
     rangeEnd = clampDate(rangeEnd, baseStart, baseEnd);
 
     return { start: rangeStart, end: rangeEnd };
-  }, [selectedYear, filterBulan, filterMinggu]);
+  }, [filterBulan, filterMinggu]);
 
   useEffect(() => {
     const loadReport = async () => {
