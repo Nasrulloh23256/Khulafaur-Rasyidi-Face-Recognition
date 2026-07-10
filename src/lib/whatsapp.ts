@@ -21,7 +21,7 @@ const getFonnteConfig = () => {
   const explicitEnabled = process.env.FONNTE_ENABLED?.trim().toLowerCase();
   const enabled = explicitEnabled === "false" ? false : !!token;
 
-  return { token, apiUrl, enabled };
+  return { token, apiUrl, enabled, explicitEnabled };
 };
 
 export const normalizeWhatsAppPhone = (value: string | null | undefined) => {
@@ -63,7 +63,14 @@ export const sendStudentAttendanceWhatsApp = async (
 ): Promise<WhatsAppNotificationResult> => {
   const config = getFonnteConfig();
   if (!config.enabled) {
-    return { sent: false, skipped: true, reason: "Fonnte belum dikonfigurasi" };
+    return {
+      sent: false,
+      skipped: true,
+      reason:
+        config.explicitEnabled === "false"
+          ? "FONNTE_ENABLED bernilai false pada deployment Vercel"
+          : "FONNTE_TOKEN belum terbaca pada deployment Vercel",
+    };
   }
 
   const to = normalizeWhatsAppPhone(input.to);
