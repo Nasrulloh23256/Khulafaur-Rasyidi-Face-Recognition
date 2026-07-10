@@ -51,6 +51,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         attendances: {
           where: { date },
           select: {
+            id: true,
             status: true,
             checkInTime: true,
             checkInLatitude: true,
@@ -75,6 +76,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       studentNumber: student.studentNumber,
       gender: student.gender,
       faceImageUrl: student.faceImageUrl,
+      attendanceId: attendance?.id ?? null,
       status: attendance?.status ?? null,
       checkInTime: formatStudentAttendanceTime(attendance?.checkInTime ?? null),
       checkInPhotoUrl: attendance?.checkInPhotoUrl ?? null,

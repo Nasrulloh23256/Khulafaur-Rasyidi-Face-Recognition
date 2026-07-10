@@ -4,6 +4,7 @@ import {
   Camera,
   Check,
   Clock,
+  Send,
   Users,
   X,
 } from "lucide-react";
@@ -53,11 +54,23 @@ type AttendanceStudent = {
   fullName: string;
   gender: "MALE" | "FEMALE";
   faceImageUrl: string | null;
+  attendanceId: string | null;
   status: AttendanceStatus;
   checkInTime: string | null;
   checkInPhotoUrl: string | null;
   checkInLocation: AttendanceLocation | null;
   checkInAreaStatus: AttendanceAreaStatus | null;
+};
+
+type WhatsAppNotification = {
+  sent: boolean;
+  skipped?: boolean;
+  reason?: string;
+};
+
+type AttendanceSaveResult = {
+  saved: boolean;
+  notification?: WhatsAppNotification | null;
 };
 
 const statusLabel: Record<string, string> = {
@@ -93,6 +106,7 @@ const Kehadiran = () => {
   const [selectedStudent, setSelectedStudent] = useState<AttendanceStudent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [resendingAttendanceId, setResendingAttendanceId] = useState<string | null>(null);
   const [isCameraOpen, setIsCameraOpen] = useState(false);
   const [isCapturing, setIsCapturing] = useState(false);
   const videoRef = useRef<HTMLVideoElement | null>(null);
@@ -270,7 +284,7 @@ const Kehadiran = () => {
     status: Exclude<AttendanceStatus, null>,
     evidence?: { photo: string; location: AttendanceLocation },
   ) => {
-    if (!selectedClassId) return false;
+    if (!selectedClassId) return { saved: false } satisfies AttendanceSaveResult;
 
     setIsSaving(true);
     try {
@@ -293,10 +307,13 @@ const Kehadiran = () => {
           description: message,
           variant: "destructive",
         });
-        return false;
+        return { saved: false } satisfies AttendanceSaveResult;
       }
       await loadAttendance(selectedClassId);
-      return true;
+      return {
+        saved: true,
+        notification: data?.whatsappNotification ?? null,
+      } satisfies AttendanceSaveResult;
     } catch (error) {
       const message = error instanceof Error ? error.message : "Gagal menyimpan absensi";
       toast({
@@ -304,9 +321,44 @@ const Kehadiran = () => {
         description: message,
         variant: "destructive",
       });
-      return false;
+      return { saved: false } satisfies AttendanceSaveResult;
     } finally {
       setIsSaving(false);
+    }
+  };
+
+  const handleResendNotification = async (attendanceId: string) => {
+    setResendingAttendanceId(attendanceId);
+    try {
+      const response = await fetch("/api/attendance/notify", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ attendanceId }),
+      });
+      const data = await response.json();
+      if (!response.ok) {
+        throw new Error(data?.error ?? "Gagal mengirim notifikasi");
+      }
+
+      const notification = data?.notification as WhatsAppNotification | undefined;
+      if (notification?.sent) {
+        toast({ title: "Notifikasi terkirim", description: "Notifikasi absensi telah dikirim ke WhatsApp orang tua/wali." });
+        return;
+      }
+
+      toast({
+        title: "Notifikasi belum terkirim",
+        description: notification?.reason ?? "Periksa konfigurasi Fonnte dan nomor WhatsApp orang tua/wali.",
+        variant: "destructive",
+      });
+    } catch (error) {
+      toast({
+        title: "Gagal mengirim notifikasi",
+        description: error instanceof Error ? error.message : "Terjadi kesalahan saat menghubungi Fonnte.",
+        variant: "destructive",
+      });
+    } finally {
+      setResendingAttendanceId(null);
     }
   };
 
@@ -339,13 +391,25 @@ const Kehadiran = () => {
     try {
       const photo = capturePhoto();
       const location = await getCurrentLocation();
-      const saved = await handleStatusChange(selectedStudent.id, "PRESENT", { photo, location });
-      if (!saved) return;
+      const result = await handleStatusChange(selectedStudent.id, "PRESENT", { photo, location });
+      if (!result.saved) return;
 
       toast({
         title: "Absensi berhasil",
         description: `${selectedStudent.fullName} tercatat hadir dengan foto dan lokasi.`,
       });
+      if (result.notification?.sent) {
+        toast({
+          title: "Notifikasi terkirim",
+          description: "Notifikasi absensi telah dikirim ke WhatsApp orang tua/wali.",
+        });
+      } else if (result.notification) {
+        toast({
+          title: "Notifikasi belum terkirim",
+          description: result.notification.reason ?? "Periksa konfigurasi Fonnte dan nomor WhatsApp orang tua/wali.",
+          variant: "destructive",
+        });
+      }
       setIsCameraOpen(false);
       setSelectedStudent(null);
     } catch (error) {
@@ -584,6 +648,21 @@ const Kehadiran = () => {
                               <Camera className="h-4 w-4" />
                               Ambil Foto Hadir
                             </Button>
+
+                            {currentStatus === "PRESENT" && siswa.attendanceId && (
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                className="w-full gap-2"
+                                onClick={() => handleResendNotification(siswa.attendanceId as string)}
+                                disabled={isSaving || resendingAttendanceId === siswa.attendanceId}
+                              >
+                                <Send className="h-4 w-4" />
+                                {resendingAttendanceId === siswa.attendanceId
+                                  ? "Mengirim..."
+                                  : "Kirim Ulang Notifikasi"}
+                              </Button>
+                            )}
 
                             <div className="space-y-1 text-xs text-muted-foreground">
                               <p>Status: {statusLabel[currentStatus]}</p>
