@@ -48,6 +48,12 @@ type AttendanceAreaStatus = {
 
 type AttendanceStatus = "PRESENT" | "ABSENT" | "SICK" | "PERMIT" | null;
 
+type AttendanceScheduleStatus = {
+  configured: boolean;
+  isOpen: boolean;
+  message: string;
+};
+
 type AttendanceStudent = {
   id: string;
   studentNumber: string | null;
@@ -104,6 +110,7 @@ const Kehadiran = () => {
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [selectedClassId, setSelectedClassId] = useState("");
   const [attendanceData, setAttendanceData] = useState<AttendanceStudent[]>([]);
+  const [scheduleStatus, setScheduleStatus] = useState<AttendanceScheduleStatus | null>(null);
   const [selectedStudent, setSelectedStudent] = useState<AttendanceStudent | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
@@ -166,6 +173,7 @@ const Kehadiran = () => {
         throw new Error(data?.error ?? "Gagal memuat data absensi");
       }
       setAttendanceData(data.students ?? []);
+      setScheduleStatus(data.scheduleStatus ?? null);
     } catch (error) {
       const message = error instanceof Error ? error.message : "Gagal memuat data absensi";
       toast({
@@ -186,6 +194,7 @@ const Kehadiran = () => {
     if (selectedClassId) {
       setSelectedStudent(null);
       setIsCameraOpen(false);
+      setScheduleStatus(null);
       loadAttendance(selectedClassId);
     }
   }, [selectedClassId]);
@@ -387,6 +396,14 @@ const Kehadiran = () => {
       });
       return;
     }
+    if (scheduleStatus?.configured && !scheduleStatus.isOpen) {
+      toast({
+        title: "Absensi belum dibuka",
+        description: scheduleStatus.message,
+        variant: "destructive",
+      });
+      return;
+    }
 
     setSelectedStudent(student);
     setIsCameraOpen(true);
@@ -520,6 +537,19 @@ const Kehadiran = () => {
           </div>
         </div>
 
+        {scheduleStatus?.configured && (
+          <div
+            className={`rounded-lg border px-4 py-3 text-sm ${
+              scheduleStatus.isOpen
+                ? "border-success/30 bg-success/10 text-success"
+                : "border-warning/30 bg-warning/10 text-warning-foreground"
+            }`}
+          >
+            <span className="font-semibold">Jadwal kelas: </span>
+            {scheduleStatus.message}
+          </div>
+        )}
+
         <div className="grid grid-cols-1 gap-4 sm:grid-cols-4">
           <Card className="border-0 shadow-card">
             <CardContent className="flex items-center gap-4 p-4">
@@ -610,7 +640,7 @@ const Kehadiran = () => {
                           <div className="mt-3 space-y-2">
                             <Select
                               value={currentStatus}
-                              disabled={isSaving || isAlreadyMarked}
+                              disabled={isSaving || isAlreadyMarked || (scheduleStatus?.configured && !scheduleStatus.isOpen)}
                               onValueChange={(value) => {
                                 if (value === "UNMARKED") return;
                                 if (value === "PRESENT") {
@@ -655,7 +685,7 @@ const Kehadiran = () => {
                               size="sm"
                               className="w-full gap-2"
                               onClick={() => openPhotoAttendance(siswa)}
-                              disabled={isSaving || isAlreadyMarked}
+                              disabled={isSaving || isAlreadyMarked || (scheduleStatus?.configured && !scheduleStatus.isOpen)}
                             >
                               <Camera className="h-4 w-4" />
                               Ambil Foto Hadir

@@ -6,6 +6,8 @@ import {
   formatStudentAttendanceTime,
   serializeStudentAttendanceLocation,
 } from "@/lib/student-attendance";
+import { getClassAttendanceScheduleStatus } from "@/lib/class-schedule";
+import { ensureClassScheduleTable } from "@/lib/class-schedule-storage";
 
 const startOfDay = (value: Date) => {
   const date = new Date(value);
@@ -15,6 +17,7 @@ const startOfDay = (value: Date) => {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await ensureStudentAttendanceColumns();
+  await ensureClassScheduleTable();
 
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
@@ -37,7 +40,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const [kelas, students] = await Promise.all([
     prisma.class.findUnique({
       where: { id: classId },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        schedules: { select: { dayOfWeek: true, startTime: true, endTime: true }, orderBy: { dayOfWeek: "asc" } },
+      },
     }),
     prisma.student.findMany({
       where: { classId },
@@ -85,5 +92,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     };
   });
 
-  return res.status(200).json({ class: kelas, date: date.toISOString(), students: data });
+  return res.status(200).json({
+    class: kelas,
+    date: date.toISOString(),
+    scheduleStatus: getClassAttendanceScheduleStatus(kelas.schedules),
+    students: data,
+  });
 }

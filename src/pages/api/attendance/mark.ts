@@ -4,6 +4,8 @@ import { getAttendanceAreaStatus } from "@/lib/attendance-area";
 import { saveBase64Image } from "@/lib/image-storage";
 import { ensureStudentAttendanceColumns, formatStudentAttendanceTime } from "@/lib/student-attendance";
 import { sendStudentAttendanceWhatsApp } from "@/lib/whatsapp";
+import { getClassAttendanceScheduleStatus } from "@/lib/class-schedule";
+import { ensureClassScheduleTable } from "@/lib/class-schedule-storage";
 
 export const config = {
   api: {
@@ -85,6 +87,7 @@ const formatAreaStatus = (location: AttendanceLocation) => {
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
   await ensureStudentAttendanceColumns();
+  await ensureClassScheduleTable();
 
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
@@ -124,9 +127,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(400).json({ error: "Siswa tidak berada di kelas ini" });
   }
 
-  const kelas = await prisma.class.findUnique({ where: { id: classId }, select: { id: true, name: true } });
+  const kelas = await prisma.class.findUnique({
+    where: { id: classId },
+    select: {
+      id: true,
+      name: true,
+      schedules: { select: { dayOfWeek: true, startTime: true, endTime: true }, orderBy: { dayOfWeek: "asc" } },
+    },
+  });
   if (!kelas) {
     return res.status(404).json({ error: "Kelas tidak ditemukan" });
+  }
+
+  const scheduleStatus = getClassAttendanceScheduleStatus(kelas.schedules);
+  if (scheduleStatus.configured && !scheduleStatus.isOpen) {
+    return res.status(403).json({ error: scheduleStatus.message });
   }
 
   const date = startOfDay(new Date());

@@ -1,7 +1,11 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { parseClassSchedules } from "@/lib/class-schedule";
+import { ensureClassScheduleTable } from "@/lib/class-schedule-storage";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await ensureClassScheduleTable();
+
   const id = typeof req.query.id === "string" ? req.query.id : "";
   if (!id) {
     return res.status(400).json({ error: "ID kelas tidak valid" });
@@ -13,7 +17,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === "PATCH") {
-    const { homeroomTeacherId, studentIds } = req.body ?? {};
+    const { homeroomTeacherId, studentIds, schedules } = req.body ?? {};
     const updateData: { homeroomTeacherId?: string | null } = {};
 
     if (homeroomTeacherId === null) {
@@ -33,6 +37,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       ? studentIds.filter((value: unknown) => typeof value === "string")
       : [];
 
+    const parsedSchedules = parseClassSchedules(schedules);
+    if (!parsedSchedules.schedules) {
+      return res.status(400).json({ error: parsedSchedules.error });
+    }
+
     await prisma.$transaction(async (tx) => {
       if (Object.keys(updateData).length > 0) {
         await tx.class.update({ where: { id }, data: updateData });
@@ -44,12 +53,16 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           data: { classId: id },
         });
       }
+
+      await tx.classSchedule.deleteMany({ where: { classId: id } });
+      await tx.classSchedule.createMany({ data: parsedSchedules.schedules.map((schedule) => ({ classId: id, ...schedule })) });
     });
 
     const updated = await prisma.class.findUnique({
       where: { id },
       include: {
         homeroomTeacher: true,
+        schedules: { orderBy: { dayOfWeek: "asc" } },
         _count: { select: { students: true } },
       },
     });
@@ -66,6 +79,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     await prisma.$transaction(async (tx) => {
       await tx.attendance.updateMany({ where: { classId: id }, data: { classId: null } });
       await tx.student.updateMany({ where: { classId: id }, data: { classId: null } });
+      await tx.classSchedule.deleteMany({ where: { classId: id } });
       await tx.class.delete({ where: { id } });
     });
   } catch (error) {

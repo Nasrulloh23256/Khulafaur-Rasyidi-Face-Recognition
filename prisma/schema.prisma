@@ -101,8 +101,22 @@ model Class {
   homeroomTeacher Teacher?     @relation("HomeroomTeacher", fields: [homeroomTeacherId], references: [id])
   students       Student[]
   attendances    Attendance[]
+  schedules      ClassSchedule[]
 
   @@index([academicYearId])
+}
+
+model ClassSchedule {
+  id        String @id @default(cuid())
+  classId   String
+  dayOfWeek Int
+  startTime String
+  endTime   String
+
+  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+
+  @@unique([classId, dayOfWeek])
+  @@index([classId])
 }
 
 model Student {

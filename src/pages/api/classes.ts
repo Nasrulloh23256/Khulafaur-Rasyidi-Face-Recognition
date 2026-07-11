@@ -1,8 +1,12 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
 import { getOperationalClassPeriod } from "@/lib/class-period";
+import { parseClassSchedules } from "@/lib/class-schedule";
+import { ensureClassScheduleTable } from "@/lib/class-schedule-storage";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await ensureClassScheduleTable();
+
   if (req.method === "GET") {
     const classes = await prisma.class.findMany({
       orderBy: { name: "asc" },
@@ -10,6 +14,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         id: true,
         name: true,
         homeroomTeacher: { select: { id: true, fullName: true } },
+        schedules: { select: { dayOfWeek: true, startTime: true, endTime: true }, orderBy: { dayOfWeek: "asc" } },
         _count: { select: { students: true } },
       },
     });
@@ -18,10 +23,15 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === "POST") {
-    const { name, homeroomTeacherId } = req.body ?? {};
+    const { name, homeroomTeacherId, schedules } = req.body ?? {};
 
     if (typeof name !== "string" || name.trim() === "") {
       return res.status(400).json({ error: "Nama kelas wajib diisi" });
+    }
+
+    const parsedSchedules = parseClassSchedules(schedules);
+    if (!parsedSchedules.schedules) {
+      return res.status(400).json({ error: parsedSchedules.error });
     }
 
     let resolvedTeacherId: string | null = null;
@@ -38,20 +48,24 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     try {
       const period = await getOperationalClassPeriod();
-      const createdClass = await prisma.class.create({
-        data: {
-          name: name.trim(),
-          academicYearId: period.academicYearId,
-          semesterId: period.semesterId,
-          homeroomTeacherId: resolvedTeacherId,
-        },
-        select: {
-          id: true,
-          name: true,
-          homeroomTeacher: { select: { id: true, fullName: true } },
-          _count: { select: { students: true } },
-        },
-      });
+      const createdClass = await prisma.$transaction((tx) =>
+        tx.class.create({
+          data: {
+            name: name.trim(),
+            academicYearId: period.academicYearId,
+            semesterId: period.semesterId,
+            homeroomTeacherId: resolvedTeacherId,
+            schedules: { create: parsedSchedules.schedules },
+          },
+          select: {
+            id: true,
+            name: true,
+            homeroomTeacher: { select: { id: true, fullName: true } },
+            schedules: { select: { dayOfWeek: true, startTime: true, endTime: true }, orderBy: { dayOfWeek: "asc" } },
+            _count: { select: { students: true } },
+          },
+        }),
+      );
 
       return res.status(201).json(createdClass);
     } catch (error) {
