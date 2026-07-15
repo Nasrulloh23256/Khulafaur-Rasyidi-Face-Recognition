@@ -54,6 +54,7 @@ model Teacher {
 
   user               User?               @relation(fields: [userId], references: [id])
   classes            Class[]             @relation("HomeroomTeacher")
+  teachingSchedules  ClassSchedule[]     @relation("ClassScheduleTeacher")
   teacherAttendances TeacherAttendance[]
 }
 
@@ -109,14 +110,18 @@ model Class {
 model ClassSchedule {
   id        String @id @default(cuid())
   classId   String
+  teacherId String?
   dayOfWeek Int
   startTime String
   endTime   String
 
-  class Class @relation(fields: [classId], references: [id], onDelete: Cascade)
+  class               Class               @relation(fields: [classId], references: [id], onDelete: Cascade)
+  teacher             Teacher?            @relation("ClassScheduleTeacher", fields: [teacherId], references: [id], onDelete: SetNull)
+  teacherAttendances  TeacherAttendance[]
 
-  @@unique([classId, dayOfWeek])
+  @@unique([classId, dayOfWeek, startTime, endTime])
   @@index([classId])
+  @@index([teacherId, dayOfWeek])
 }
 
 model Student {
@@ -167,6 +172,7 @@ model Attendance {
 model TeacherAttendance {
   id           String           @id @default(cuid())
   teacherId    String
+  classScheduleId String?
   date         DateTime
   status       AttendanceStatus @default(PRESENT)
   checkInTime  DateTime?
@@ -184,10 +190,12 @@ model TeacherAttendance {
   updatedAt    DateTime         @updatedAt
 
   teacher      Teacher          @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  classSchedule ClassSchedule? @relation(fields: [classScheduleId], references: [id], onDelete: SetNull)
 
-  @@unique([teacherId, date])
+  @@unique([teacherId, classScheduleId, date])
   @@index([date])
   @@index([teacherId, date])
+  @@index([classScheduleId, date])
 }
 
 model TeacherPayrollSetting {

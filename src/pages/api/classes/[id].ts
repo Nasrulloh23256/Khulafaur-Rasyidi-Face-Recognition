@@ -42,6 +42,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       return res.status(400).json({ error: parsedSchedules.error });
     }
 
+    const scheduleTeacherIds = [...new Set(parsedSchedules.schedules.map((schedule) => schedule.teacherId))];
+    const scheduleTeacherCount = await prisma.teacher.count({ where: { id: { in: scheduleTeacherIds } } });
+    if (scheduleTeacherCount !== scheduleTeacherIds.length) {
+      return res.status(404).json({ error: "Pengajar pada jadwal tidak ditemukan" });
+    }
+
     await prisma.$transaction(async (tx) => {
       if (Object.keys(updateData).length > 0) {
         await tx.class.update({ where: { id }, data: updateData });
@@ -62,7 +68,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       where: { id },
       include: {
         homeroomTeacher: true,
-        schedules: { orderBy: { dayOfWeek: "asc" } },
+        schedules: { include: { teacher: { select: { fullName: true } } }, orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }] },
         _count: { select: { students: true } },
       },
     });

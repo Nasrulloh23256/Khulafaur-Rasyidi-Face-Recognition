@@ -32,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -39,7 +40,6 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import type { CheckedState } from "@radix-ui/react-checkbox";
@@ -61,76 +61,77 @@ type ClassItem = {
   id: string;
   name: string;
   homeroomTeacher: Teacher | null;
-  schedules: ClassScheduleInput[];
+  schedules: (Omit<ClassScheduleInput, "teacherId"> & { teacherId: string | null; teacher: { fullName: string } | null })[];
   _count: { students: number };
 };
 
 const hasValidSchedules = (schedules: ClassScheduleInput[]) =>
-  schedules.length > 0 && schedules.every((schedule) => schedule.startTime < schedule.endTime);
+  schedules.length > 0 &&
+  schedules.every(
+    (schedule) => schedule.teacherId.trim() !== "" && schedule.startTime < schedule.endTime,
+  );
 
 const ScheduleFields = ({
   schedules,
   onChange,
   idPrefix,
+  teachers,
 }: {
   schedules: ClassScheduleInput[];
   onChange: (schedules: ClassScheduleInput[]) => void;
   idPrefix: string;
+  teachers: Teacher[];
 }) => {
-  const changeDay = (dayOfWeek: number, checked: CheckedState) => {
-    if (checked === true) {
-      onChange(
-        [...schedules, { dayOfWeek, startTime: "15:00", endTime: "17:00" }].sort((a, b) => a.dayOfWeek - b.dayOfWeek),
-      );
-      return;
-    }
-    onChange(schedules.filter((schedule) => schedule.dayOfWeek !== dayOfWeek));
-  };
+  const addSession = (dayOfWeek: number) =>
+    onChange(
+      [...schedules, { dayOfWeek, startTime: "15:00", endTime: "17:00", teacherId: teachers[0]?.id ?? "" }].sort(
+        (a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime),
+      ),
+    );
 
-  const changeTime = (dayOfWeek: number, field: "startTime" | "endTime", value: string) =>
-    onChange(schedules.map((schedule) => (schedule.dayOfWeek === dayOfWeek ? { ...schedule, [field]: value } : schedule)));
+  const updateSession = (index: number, field: keyof Pick<ClassScheduleInput, "teacherId" | "startTime" | "endTime">, value: string) =>
+    onChange(schedules.map((schedule, scheduleIndex) => (scheduleIndex === index ? { ...schedule, [field]: value } : schedule)));
+
+  const removeSession = (index: number) => onChange(schedules.filter((_, scheduleIndex) => scheduleIndex !== index));
 
   return (
     <div className="space-y-2">
       <div>
         <Label>Jadwal Bimbel</Label>
-        <p className="mt-1 text-xs text-muted-foreground">Pilih hari belajar lalu tentukan jam absensi dibuka.</p>
+        <p className="mt-1 text-xs text-muted-foreground">Tambahkan satu atau beberapa sesi beserta pengajarnya.</p>
       </div>
       <div className="space-y-2 rounded-lg border p-3">
         {scheduleDays.map((day) => {
-          const schedule = schedules.find((item) => item.dayOfWeek === day.value);
+          const daySchedules = schedules
+            .map((schedule, index) => ({ schedule, index }))
+            .filter((item) => item.schedule.dayOfWeek === day.value);
           return (
-            <div key={day.value} className="flex flex-wrap items-center gap-3 rounded-md py-1">
-              <div className="flex w-28 items-center gap-2">
-                <Checkbox
-                  id={`${idPrefix}-${day.value}`}
-                  checked={!!schedule}
-                  onCheckedChange={(checked) => changeDay(day.value, checked)}
-                />
-                <Label htmlFor={`${idPrefix}-${day.value}`} className="cursor-pointer text-sm font-medium">
-                  {day.label}
-                </Label>
+            <div key={day.value} className="rounded-md border border-dashed p-2">
+              <div className="flex items-center justify-between gap-3">
+                <Label className="text-sm font-medium">{day.label}</Label>
+                <Button type="button" variant="outline" size="sm" onClick={() => addSession(day.value)} disabled={teachers.length === 0}>
+                  <Plus className="h-3.5 w-3.5" /> Tambah sesi
+                </Button>
               </div>
-              {schedule ? (
-                <div className="flex items-center gap-2 text-sm">
-                  <Input
-                    aria-label={`Jam mulai ${day.label}`}
-                    type="time"
-                    className="h-9 w-28"
-                    value={schedule.startTime}
-                    onChange={(event) => changeTime(day.value, "startTime", event.target.value)}
-                  />
-                  <span className="text-muted-foreground">sampai</span>
-                  <Input
-                    aria-label={`Jam selesai ${day.label}`}
-                    type="time"
-                    className="h-9 w-28"
-                    value={schedule.endTime}
-                    onChange={(event) => changeTime(day.value, "endTime", event.target.value)}
-                  />
-                </div>
+              {daySchedules.length === 0 ? (
+                <p className="mt-2 text-xs text-muted-foreground">Tidak ada sesi.</p>
               ) : (
-                <span className="text-xs text-muted-foreground">Tidak ada jadwal</span>
+                <div className="mt-2 space-y-2">
+                  {daySchedules.map(({ schedule, index }) => (
+                    <div key={`${idPrefix}-${day.value}-${index}`} className="flex flex-wrap items-center gap-2 rounded-md bg-muted/40 p-2">
+                      <Select value={schedule.teacherId} onValueChange={(value) => updateSession(index, "teacherId", value)}>
+                        <SelectTrigger className="h-9 w-[180px]"><SelectValue placeholder="Pilih pengajar" /></SelectTrigger>
+                        <SelectContent>
+                          {teachers.map((teacher) => <SelectItem key={teacher.id} value={teacher.id}>{teacher.fullName}</SelectItem>)}
+                        </SelectContent>
+                      </Select>
+                      <Input aria-label={`Jam mulai ${day.label}`} type="time" className="h-9 w-28" value={schedule.startTime} onChange={(event) => updateSession(index, "startTime", event.target.value)} />
+                      <span className="text-xs text-muted-foreground">sampai</span>
+                      <Input aria-label={`Jam selesai ${day.label}`} type="time" className="h-9 w-28" value={schedule.endTime} onChange={(event) => updateSession(index, "endTime", event.target.value)} />
+                      <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeSession(index)} aria-label="Hapus sesi"><Trash2 className="h-4 w-4" /></Button>
+                    </div>
+                  ))}
+                </div>
               )}
             </div>
           );
@@ -262,7 +263,12 @@ const Kelas = () => {
     setEditForm({
       homeroomTeacherId: kelas.homeroomTeacher?.id ?? "none",
       studentIds: [],
-      schedules: kelas.schedules,
+      schedules: kelas.schedules.map((schedule) => ({
+        dayOfWeek: schedule.dayOfWeek,
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        teacherId: schedule.teacherId ?? kelas.homeroomTeacher?.id ?? "",
+      })),
     });
     setIsEditOpen(true);
   };
@@ -473,6 +479,7 @@ const Kelas = () => {
                   schedules={form.schedules}
                   onChange={(schedules) => setForm((prev) => ({ ...prev, schedules }))}
                   idPrefix="create-schedule"
+                  teachers={sortedTeachers}
                 />
 
                 <div className="space-y-2">
@@ -663,6 +670,7 @@ const Kelas = () => {
               schedules={editForm.schedules}
               onChange={(schedules) => setEditForm((prev) => ({ ...prev, schedules }))}
               idPrefix="edit-schedule"
+              teachers={sortedTeachers}
             />
             <div className="space-y-2">
               <Label>Tambah Siswa (belum punya kelas)</Label>

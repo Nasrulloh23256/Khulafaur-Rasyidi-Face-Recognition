@@ -14,7 +14,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         id: true,
         name: true,
         homeroomTeacher: { select: { id: true, fullName: true } },
-        schedules: { select: { dayOfWeek: true, startTime: true, endTime: true }, orderBy: { dayOfWeek: "asc" } },
+        schedules: {
+          select: { dayOfWeek: true, startTime: true, endTime: true, teacherId: true, teacher: { select: { fullName: true } } },
+          orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+        },
         _count: { select: { students: true } },
       },
     });
@@ -32,6 +35,12 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const parsedSchedules = parseClassSchedules(schedules);
     if (!parsedSchedules.schedules) {
       return res.status(400).json({ error: parsedSchedules.error });
+    }
+
+    const scheduleTeacherIds = [...new Set(parsedSchedules.schedules.map((schedule) => schedule.teacherId))];
+    const scheduleTeacherCount = await prisma.teacher.count({ where: { id: { in: scheduleTeacherIds } } });
+    if (scheduleTeacherCount !== scheduleTeacherIds.length) {
+      return res.status(404).json({ error: "Pengajar pada jadwal tidak ditemukan" });
     }
 
     let resolvedTeacherId: string | null = null;
@@ -61,7 +70,10 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             id: true,
             name: true,
             homeroomTeacher: { select: { id: true, fullName: true } },
-            schedules: { select: { dayOfWeek: true, startTime: true, endTime: true }, orderBy: { dayOfWeek: "asc" } },
+            schedules: {
+              select: { dayOfWeek: true, startTime: true, endTime: true, teacherId: true, teacher: { select: { fullName: true } } },
+              orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+            },
             _count: { select: { students: true } },
           },
         }),

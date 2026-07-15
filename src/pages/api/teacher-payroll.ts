@@ -56,7 +56,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           fullName: true,
           phone: true,
           user: { select: { email: true } },
-          classes: { select: { id: true, name: true } },
           teacherAttendances: {
             where: { date: { gte: start, lte: end } },
             orderBy: { date: "asc" },
@@ -65,6 +64,13 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
               date: true,
               checkInTime: true,
               checkOutTime: true,
+              classSchedule: {
+                select: {
+                  startTime: true,
+                  endTime: true,
+                  class: { select: { id: true, name: true } },
+                },
+              },
             },
           },
         },
@@ -109,15 +115,28 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           workedHours: toHours(workedMinutes),
           pay,
           status: isComplete ? "LENGKAP" : "BELUM_KELUAR",
+          classId: attendance.classSchedule?.class.id ?? null,
+          className: attendance.classSchedule?.class.name ?? "Data lama",
+          scheduleTime: attendance.classSchedule
+            ? `${attendance.classSchedule.startTime}-${attendance.classSchedule.endTime}`
+            : null,
         };
       });
+
+      const classes = Array.from(
+        new Map(
+          teacher.teacherAttendances
+            .filter((attendance) => attendance.classSchedule?.class)
+            .map((attendance) => [attendance.classSchedule!.class.id, attendance.classSchedule!.class]),
+        ).values(),
+      );
 
       return {
         id: teacher.id,
         fullName: teacher.fullName,
         phone: teacher.phone,
         email: teacher.user?.email ?? null,
-        classes: teacher.classes,
+        classes,
         totals: {
           completeAttendances: teacherComplete,
           incompleteAttendances: teacherIncomplete,

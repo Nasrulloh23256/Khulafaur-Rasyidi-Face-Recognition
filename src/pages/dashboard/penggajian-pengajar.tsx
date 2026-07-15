@@ -47,6 +47,9 @@ type PayrollDaily = {
   workedHours: number;
   pay: number;
   status: "LENGKAP" | "BELUM_KELUAR";
+  classId: string | null;
+  className: string;
+  scheduleTime: string | null;
 };
 
 type PayrollTeacher = {
@@ -141,7 +144,6 @@ const PenggajianPengajarPage = () => {
           ...item,
           teacherId: teacher.id,
           fullName: teacher.fullName,
-          classes: teacher.classes.length > 0 ? teacher.classes.map((kelas) => kelas.name).join(", ") : "-",
         })),
       ),
     [teachers],
@@ -448,6 +450,7 @@ const PenggajianPengajarPage = () => {
                     <TableHead>Tanggal</TableHead>
                     <TableHead>Pengajar</TableHead>
                     <TableHead>Kelas</TableHead>
+                    <TableHead>Jadwal Sesi</TableHead>
                     <TableHead>Jam Datang</TableHead>
                     <TableHead>Jam Keluar</TableHead>
                     <TableHead>Durasi</TableHead>
@@ -458,14 +461,14 @@ const PenggajianPengajarPage = () => {
                 <TableBody>
                   {isLoading && (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center text-muted-foreground">
                         Memuat detail jam kerja...
                       </TableCell>
                     </TableRow>
                   )}
                   {!isLoading && flatDailyRows.length === 0 && (
                     <TableRow>
-                      <TableCell colSpan={8} className="text-center text-muted-foreground">
+                      <TableCell colSpan={9} className="text-center text-muted-foreground">
                         Detail jam kerja belum tersedia.
                       </TableCell>
                     </TableRow>
@@ -474,7 +477,8 @@ const PenggajianPengajarPage = () => {
                     <TableRow key={`${item.teacherId}-${item.id}`}>
                       <TableCell>{formatDate(item.date)}</TableCell>
                       <TableCell className="font-medium text-foreground">{item.fullName}</TableCell>
-                      <TableCell>{item.classes}</TableCell>
+                      <TableCell>{item.className}</TableCell>
+                      <TableCell>{item.scheduleTime ?? "-"}</TableCell>
                       <TableCell>{item.checkInTime ?? "-"}</TableCell>
                       <TableCell>{item.checkOutTime ?? "-"}</TableCell>
                       <TableCell>{formatHours(item.workedHours)}</TableCell>

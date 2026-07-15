@@ -2,6 +2,7 @@ export type ClassScheduleInput = {
   dayOfWeek: number;
   startTime: string;
   endTime: string;
+  teacherId: string;
 };
 
 export const scheduleDays = [
@@ -21,13 +22,15 @@ const toMinutes = (time: string) => {
   return hour * 60 + minute;
 };
 
-export const parseClassSchedules = (value: unknown) => {
+export const parseClassSchedules = (
+  value: unknown,
+): { schedules: ClassScheduleInput[] | null; error: string | null } => {
   if (!Array.isArray(value) || value.length === 0) {
     return { schedules: null, error: "Pilih minimal satu hari jadwal bimbel" };
   }
 
   const schedules: ClassScheduleInput[] = [];
-  const usedDays = new Set<number>();
+  const usedSlots = new Set<string>();
 
   for (const item of value) {
     if (!item || typeof item !== "object") {
@@ -41,31 +44,43 @@ export const parseClassSchedules = (value: unknown) => {
       (schedule.dayOfWeek ?? 7) > 6 ||
       typeof schedule.startTime !== "string" ||
       typeof schedule.endTime !== "string" ||
+      typeof schedule.teacherId !== "string" ||
+      schedule.teacherId.trim() === "" ||
       !timePattern.test(schedule.startTime) ||
       !timePattern.test(schedule.endTime) ||
       toMinutes(schedule.startTime) >= toMinutes(schedule.endTime) ||
-      usedDays.has(schedule.dayOfWeek)
+      usedSlots.has(`${schedule.dayOfWeek}-${schedule.startTime}-${schedule.endTime}`)
     ) {
       return { schedules: null, error: "Hari dan jam jadwal bimbel tidak valid" };
     }
 
-    usedDays.add(schedule.dayOfWeek);
+    usedSlots.add(`${schedule.dayOfWeek}-${schedule.startTime}-${schedule.endTime}`);
     schedules.push({
       dayOfWeek: schedule.dayOfWeek,
       startTime: schedule.startTime,
       endTime: schedule.endTime,
+      teacherId: schedule.teacherId.trim(),
     });
   }
 
-  return { schedules: schedules.sort((a, b) => a.dayOfWeek - b.dayOfWeek), error: null };
+  return {
+    schedules: schedules.sort(
+      (a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime),
+    ),
+    error: null,
+  };
 };
 
-export const formatClassSchedules = (schedules: ClassScheduleInput[]) =>
+export const formatClassSchedules = (
+  schedules: (Pick<ClassScheduleInput, "dayOfWeek" | "startTime" | "endTime"> & {
+    teacher?: { fullName: string } | null;
+  })[],
+) =>
   [...schedules]
-    .sort((a, b) => a.dayOfWeek - b.dayOfWeek)
+    .sort((a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime))
     .map((schedule) => {
       const day = scheduleDays.find((item) => item.value === schedule.dayOfWeek)?.shortLabel ?? "-";
-      return `${day} ${schedule.startTime}-${schedule.endTime}`;
+      return `${day} ${schedule.startTime}-${schedule.endTime}${schedule.teacher ? ` · ${schedule.teacher.fullName}` : ""}`;
     })
     .join(", ");
 
@@ -86,7 +101,10 @@ const getJakartaClock = (date: Date) => {
   };
 };
 
-export const getClassAttendanceScheduleStatus = (schedules: ClassScheduleInput[], now = new Date()) => {
+export const getClassAttendanceScheduleStatus = (
+  schedules: Pick<ClassScheduleInput, "dayOfWeek" | "startTime" | "endTime">[],
+  now = new Date(),
+) => {
   if (schedules.length === 0) {
     return { configured: false, isOpen: true, message: "Jadwal bimbel belum diatur" };
   }
