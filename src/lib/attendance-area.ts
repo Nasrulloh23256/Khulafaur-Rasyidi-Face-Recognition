@@ -15,7 +15,7 @@ export const BIMBEL_LOCATION = {
   longitude: 112.59609002393708,
 };
 
-export const BIMBEL_RADIUS_METERS = 5;
+export const BIMBEL_RADIUS_METERS = 25;
 
 const toRadians = (value: number) => (value * Math.PI) / 180;
 
