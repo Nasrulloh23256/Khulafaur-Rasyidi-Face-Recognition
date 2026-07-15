@@ -95,40 +95,62 @@ const ScheduleFields = ({
   const removeSession = (index: number) => onChange(schedules.filter((_, scheduleIndex) => scheduleIndex !== index));
 
   return (
-    <div className="space-y-2">
-      <div>
-        <Label>Jadwal Bimbel</Label>
-        <p className="mt-1 text-xs text-muted-foreground">Tambahkan satu atau beberapa sesi beserta pengajarnya.</p>
+    <div className="space-y-3">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <Label className="text-base">Jadwal Bimbel</Label>
+          <p className="mt-1 text-xs text-muted-foreground">Atur pengajar dan jam untuk setiap sesi kelas.</p>
+        </div>
+        <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+          {schedules.length} sesi
+        </span>
       </div>
-      <div className="space-y-2 rounded-lg border p-3">
+      <div className="grid gap-3 rounded-xl border bg-muted/20 p-3 md:grid-cols-2">
         {scheduleDays.map((day) => {
           const daySchedules = schedules
             .map((schedule, index) => ({ schedule, index }))
             .filter((item) => item.schedule.dayOfWeek === day.value);
           return (
-            <div key={day.value} className="rounded-md border border-dashed p-2">
+            <div key={day.value} className="rounded-lg border bg-background p-3 shadow-sm">
               <div className="flex items-center justify-between gap-3">
-                <Label className="text-sm font-medium">{day.label}</Label>
-                <Button type="button" variant="outline" size="sm" onClick={() => addSession(day.value)} disabled={teachers.length === 0}>
-                  <Plus className="h-3.5 w-3.5" /> Tambah sesi
+                <div>
+                  <Label className="text-sm font-semibold">{day.label}</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    {daySchedules.length > 0 ? `${daySchedules.length} sesi terjadwal` : "Belum ada sesi"}
+                  </p>
+                </div>
+                <Button type="button" variant="outline" size="sm" className="h-8 px-2.5" onClick={() => addSession(day.value)} disabled={teachers.length === 0}>
+                  <Plus className="h-3.5 w-3.5" /> Tambah
                 </Button>
               </div>
               {daySchedules.length === 0 ? (
-                <p className="mt-2 text-xs text-muted-foreground">Tidak ada sesi.</p>
+                <div className="mt-3 rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground">
+                  Klik Tambah untuk membuat sesi.
+                </div>
               ) : (
-                <div className="mt-2 space-y-2">
+                <div className="mt-3 space-y-2">
                   {daySchedules.map(({ schedule, index }) => (
-                    <div key={`${idPrefix}-${day.value}-${index}`} className="flex flex-wrap items-center gap-2 rounded-md bg-muted/40 p-2">
-                      <Select value={schedule.teacherId} onValueChange={(value) => updateSession(index, "teacherId", value)}>
-                        <SelectTrigger className="h-9 w-[180px]"><SelectValue placeholder="Pilih pengajar" /></SelectTrigger>
-                        <SelectContent>
-                          {teachers.map((teacher) => <SelectItem key={teacher.id} value={teacher.id}>{teacher.fullName}</SelectItem>)}
-                        </SelectContent>
-                      </Select>
-                      <Input aria-label={`Jam mulai ${day.label}`} type="time" className="h-9 w-28" value={schedule.startTime} onChange={(event) => updateSession(index, "startTime", event.target.value)} />
-                      <span className="text-xs text-muted-foreground">sampai</span>
-                      <Input aria-label={`Jam selesai ${day.label}`} type="time" className="h-9 w-28" value={schedule.endTime} onChange={(event) => updateSession(index, "endTime", event.target.value)} />
-                      <Button type="button" variant="ghost" size="icon" className="text-destructive" onClick={() => removeSession(index)} aria-label="Hapus sesi"><Trash2 className="h-4 w-4" /></Button>
+                    <div key={`${idPrefix}-${day.value}-${index}`} className="rounded-md border bg-muted/30 p-2.5">
+                      <div className="flex items-center gap-2">
+                        <Select value={schedule.teacherId} onValueChange={(value) => updateSession(index, "teacherId", value)}>
+                          <SelectTrigger className="h-9 min-w-0 flex-1 bg-background"><SelectValue placeholder="Pilih pengajar" /></SelectTrigger>
+                          <SelectContent>
+                            {teachers.map((teacher) => <SelectItem key={teacher.id} value={teacher.id}>{teacher.fullName}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => removeSession(index)} aria-label="Hapus sesi"><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                      <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                        <div>
+                          <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Mulai</span>
+                          <Input aria-label={`Jam mulai ${day.label}`} type="time" className="h-9 bg-background" value={schedule.startTime} onChange={(event) => updateSession(index, "startTime", event.target.value)} />
+                        </div>
+                        <span className="mt-5 text-xs text-muted-foreground">—</span>
+                        <div>
+                          <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Selesai</span>
+                          <Input aria-label={`Jam selesai ${day.label}`} type="time" className="h-9 bg-background" value={schedule.endTime} onChange={(event) => updateSession(index, "endTime", event.target.value)} />
+                        </div>
+                      </div>
                     </div>
                   ))}
                 </div>
@@ -458,56 +480,52 @@ const Kelas = () => {
                 Tambah Kelas
               </Button>
             </DialogTrigger>
-            <DialogContent className="max-w-lg">
-              <DialogHeader>
+            <DialogContent className="flex max-h-[92vh] w-[calc(100%-1.5rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0">
+              <DialogHeader className="shrink-0 border-b px-5 py-5 pr-12 sm:px-6">
                 <DialogTitle>Tambah Kelas Baru</DialogTitle>
                 <DialogDescription>Masukkan informasi kelas baru di bawah ini.</DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nama Kelas</Label>
-                  <Input
-                    id="name"
-                    placeholder="Contoh: TK A1"
-                    value={form.name}
-                    onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                    required
+              <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nama Kelas</Label>
+                      <Input
+                        id="name"
+                        placeholder="Contoh: Bimbel SD"
+                        value={form.name}
+                        onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Penanggung Jawab Kelas (opsional)</Label>
+                      <Select
+                        value={form.homeroomTeacherId}
+                        onValueChange={(value) => setForm((prev) => ({ ...prev, homeroomTeacherId: value }))}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Pilih pengajar" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Belum ditentukan</SelectItem>
+                          {sortedTeachers.length === 0 ? (
+                            <SelectItem value="empty" disabled>Belum ada pengajar</SelectItem>
+                          ) : sortedTeachers.map((teacher) => (
+                            <SelectItem key={teacher.id} value={teacher.id}>{teacher.fullName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <ScheduleFields
+                    schedules={form.schedules}
+                    onChange={(schedules) => setForm((prev) => ({ ...prev, schedules }))}
+                    idPrefix="create-schedule"
+                    teachers={sortedTeachers}
                   />
                 </div>
-
-                <ScheduleFields
-                  schedules={form.schedules}
-                  onChange={(schedules) => setForm((prev) => ({ ...prev, schedules }))}
-                  idPrefix="create-schedule"
-                  teachers={sortedTeachers}
-                />
-
-                <div className="space-y-2">
-                  <Label>Pengajar (opsional)</Label>
-                  <Select
-                    value={form.homeroomTeacherId}
-                    onValueChange={(value) => setForm((prev) => ({ ...prev, homeroomTeacherId: value }))}
-                  >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih pengajar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Belum ditentukan</SelectItem>
-                    {sortedTeachers.length === 0 ? (
-                      <SelectItem value="empty" disabled>
-                        Belum ada pengajar
-                      </SelectItem>
-                    ) : (
-                      sortedTeachers.map((teacher) => (
-                        <SelectItem key={teacher.id} value={teacher.id}>
-                          {teacher.fullName}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-                <DialogFooter>
+                <DialogFooter className="shrink-0 border-t bg-background px-5 py-4 sm:px-6">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Batal
                   </Button>
@@ -629,53 +647,58 @@ const Kelas = () => {
       </div>
 
       <Dialog open={isEditOpen} onOpenChange={handleEditOpenChange}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[92vh] w-[calc(100%-1.5rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="shrink-0 border-b px-5 py-5 pr-12 sm:px-6">
             <DialogTitle>Edit Kelas</DialogTitle>
             <DialogDescription>
-              Atur pengajar dan tambahkan siswa baru untuk {editTarget?.name ?? "kelas ini"}.
+              Atur jadwal, pengajar, dan siswa untuk {editTarget?.name ?? "kelas ini"}.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUpdate} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Nama Kelas</Label>
-              <Input value={editTarget?.name ?? ""} disabled />
-            </div>
-            <div className="space-y-2">
-              <Label>Pengajar</Label>
-              <Select
-                value={editForm.homeroomTeacherId}
-                onValueChange={(value) => setEditForm((prev) => ({ ...prev, homeroomTeacherId: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih pengajar" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Belum ditentukan</SelectItem>
-                  {sortedTeachers.length === 0 ? (
-                    <SelectItem value="empty" disabled>
-                      Belum ada pengajar
-                    </SelectItem>
-                  ) : (
-                    sortedTeachers.map((teacher) => (
-                      <SelectItem key={teacher.id} value={teacher.id}>
-                        {teacher.fullName}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <ScheduleFields
-              schedules={editForm.schedules}
-              onChange={(schedules) => setEditForm((prev) => ({ ...prev, schedules }))}
-              idPrefix="edit-schedule"
-              teachers={sortedTeachers}
-            />
-            <div className="space-y-2">
-              <Label>Tambah Siswa (belum punya kelas)</Label>
-              <ScrollArea className="h-56 rounded-md border">
-                <div className="space-y-2 p-2">
+          <form onSubmit={handleUpdate} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
+              <div className="grid gap-4 rounded-xl border bg-muted/20 p-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Nama Kelas</Label>
+                  <Input value={editTarget?.name ?? ""} disabled className="bg-background" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Penanggung Jawab Kelas</Label>
+                  <Select
+                    value={editForm.homeroomTeacherId}
+                    onValueChange={(value) => setEditForm((prev) => ({ ...prev, homeroomTeacherId: value }))}
+                  >
+                    <SelectTrigger className="bg-background"><SelectValue placeholder="Pilih pengajar" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Belum ditentukan</SelectItem>
+                      {sortedTeachers.length === 0 ? (
+                        <SelectItem value="empty" disabled>Belum ada pengajar</SelectItem>
+                      ) : sortedTeachers.map((teacher) => (
+                        <SelectItem key={teacher.id} value={teacher.id}>{teacher.fullName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <ScheduleFields
+                schedules={editForm.schedules}
+                onChange={(schedules) => setEditForm((prev) => ({ ...prev, schedules }))}
+                idPrefix="edit-schedule"
+                teachers={sortedTeachers}
+              />
+
+              <div className="space-y-3 rounded-xl border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Label className="text-base">Tambah Siswa</Label>
+                    <p className="mt-1 text-xs text-muted-foreground">Hanya menampilkan siswa yang belum memiliki kelas.</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                    {editForm.studentIds.length} dipilih
+                  </span>
+                </div>
+                <ScrollArea className="h-44 rounded-lg border bg-muted/10">
+                  <div className="space-y-1 p-2">
                   {isLoadingStudents ? (
                     <p className="text-sm text-muted-foreground px-2 py-1">Memuat data siswa...</p>
                   ) : unassignedStudents.length === 0 ? (
@@ -702,11 +725,11 @@ const Kelas = () => {
                       </label>
                     ))
                   )}
-                </div>
-              </ScrollArea>
-              <p className="text-xs text-muted-foreground">Dipilih: {editForm.studentIds.length} siswa.</p>
+                  </div>
+                </ScrollArea>
+              </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="shrink-0 border-t bg-background px-5 py-4 sm:px-6">
               <Button type="button" variant="outline" onClick={() => handleEditOpenChange(false)}>
                 Batal
               </Button>
