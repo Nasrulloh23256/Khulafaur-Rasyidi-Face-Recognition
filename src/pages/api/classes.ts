@@ -1,14 +1,23 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { getOperationalClassPeriod } from "@/lib/class-period";
+import { parseClassSchedules } from "@/lib/class-schedule";
+import { ensureClassScheduleTable } from "@/lib/class-schedule-storage";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await ensureClassScheduleTable();
+
   if (req.method === "GET") {
     const classes = await prisma.class.findMany({
       orderBy: { name: "asc" },
-      include: {
-        academicYear: true,
-        semester: true,
-        homeroomTeacher: true,
+      select: {
+        id: true,
+        name: true,
+        homeroomTeacher: { select: { id: true, fullName: true } },
+        schedules: {
+          select: { dayOfWeek: true, startTime: true, endTime: true, teacherId: true, teacher: { select: { fullName: true } } },
+          orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+        },
         _count: { select: { students: true } },
       },
     });
@@ -17,31 +26,21 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === "POST") {
-    const { name, academicYearId, semesterId, homeroomTeacherId } = req.body ?? {};
+    const { name, homeroomTeacherId, schedules } = req.body ?? {};
 
     if (typeof name !== "string" || name.trim() === "") {
       return res.status(400).json({ error: "Nama kelas wajib diisi" });
     }
 
-    if (typeof academicYearId !== "string" || academicYearId.trim() === "") {
-      return res.status(400).json({ error: "Tahun ajaran wajib dipilih" });
+    const parsedSchedules = parseClassSchedules(schedules);
+    if (!parsedSchedules.schedules) {
+      return res.status(400).json({ error: parsedSchedules.error });
     }
 
-    if (typeof semesterId !== "string" || semesterId.trim() === "") {
-      return res.status(400).json({ error: "Semester wajib dipilih" });
-    }
-
-    const semester = await prisma.semester.findUnique({
-      where: { id: semesterId },
-      select: { academicYearId: true },
-    });
-
-    if (!semester) {
-      return res.status(404).json({ error: "Semester tidak ditemukan" });
-    }
-
-    if (semester.academicYearId !== academicYearId) {
-      return res.status(400).json({ error: "Semester tidak sesuai dengan tahun ajaran" });
+    const scheduleTeacherIds = [...new Set(parsedSchedules.schedules.map((schedule) => schedule.teacherId))];
+    const scheduleTeacherCount = await prisma.teacher.count({ where: { id: { in: scheduleTeacherIds } } });
+    if (scheduleTeacherCount !== scheduleTeacherIds.length) {
+      return res.status(404).json({ error: "Pengajar pada jadwal tidak ditemukan" });
     }
 
     let resolvedTeacherId: string | null = null;
@@ -57,26 +56,34 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     }
 
     try {
-      const createdClass = await prisma.class.create({
-        data: {
-          name: name.trim(),
-          academicYearId,
-          semesterId,
-          homeroomTeacherId: resolvedTeacherId,
-        },
-        include: {
-          academicYear: true,
-          semester: true,
-          homeroomTeacher: true,
-          _count: { select: { students: true } },
-        },
-      });
+      const period = await getOperationalClassPeriod();
+      const createdClass = await prisma.$transaction((tx) =>
+        tx.class.create({
+          data: {
+            name: name.trim(),
+            academicYearId: period.academicYearId,
+            semesterId: period.semesterId,
+            homeroomTeacherId: resolvedTeacherId,
+            schedules: { create: parsedSchedules.schedules },
+          },
+          select: {
+            id: true,
+            name: true,
+            homeroomTeacher: { select: { id: true, fullName: true } },
+            schedules: {
+              select: { dayOfWeek: true, startTime: true, endTime: true, teacherId: true, teacher: { select: { fullName: true } } },
+              orderBy: [{ dayOfWeek: "asc" }, { startTime: "asc" }],
+            },
+            _count: { select: { students: true } },
+          },
+        }),
+      );
 
       return res.status(201).json(createdClass);
     } catch (error) {
       const maybeError = error as { code?: string };
       if (maybeError?.code === "P2002") {
-        return res.status(409).json({ error: "Kelas sudah terdaftar untuk tahun ajaran dan semester tersebut" });
+        return res.status(409).json({ error: "Nama kelas sudah terdaftar" });
       }
       return res.status(500).json({ error: "Gagal menyimpan kelas" });
     }

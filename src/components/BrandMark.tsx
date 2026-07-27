@@ -9,7 +9,7 @@ type BrandMarkProps = {
 const BrandMark = ({
   className,
   textClassName,
-  label = "\u03A9hm Study Club",
+  label = "Ohm Study Club Attendance",
 }: BrandMarkProps) => (
   <div
     aria-label={label}

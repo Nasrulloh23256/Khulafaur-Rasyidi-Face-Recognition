@@ -67,6 +67,7 @@ type StudentItem = {
   fullName: string;
   gender: "MALE" | "FEMALE";
   guardianName: string | null;
+  guardianPhone: string | null;
   classId: string | null;
   faceImageUrl: string | null;
   class: ClassItem | null;
@@ -94,6 +95,7 @@ const Siswa = () => {
     classId: "",
     gender: "",
     guardianName: "",
+    guardianPhone: "",
   });
   const [editForm, setEditForm] = useState({
     studentNumber: "",
@@ -101,6 +103,7 @@ const Siswa = () => {
     classId: "",
     gender: "" as StudentItem["gender"] | "",
     guardianName: "",
+    guardianPhone: "",
   });
 
   const sortedClasses = useMemo(
@@ -166,6 +169,7 @@ const Siswa = () => {
         classId: "",
         gender: "",
         guardianName: "",
+        guardianPhone: "",
       });
     }
   };
@@ -180,6 +184,7 @@ const Siswa = () => {
         classId: "",
         gender: "",
         guardianName: "",
+        guardianPhone: "",
       });
     }
   };
@@ -192,6 +197,7 @@ const Siswa = () => {
       classId: siswa.classId ?? "",
       gender: siswa.gender,
       guardianName: siswa.guardianName ?? "",
+      guardianPhone: siswa.guardianPhone ?? "",
     });
     setIsEditOpen(true);
   };
@@ -216,6 +222,7 @@ const Siswa = () => {
         classId: form.classId,
         gender: form.gender,
         guardianName: form.guardianName,
+        guardianPhone: form.guardianPhone,
       };
 
       const response = await fetch("/api/students", {
@@ -277,6 +284,7 @@ const Siswa = () => {
         fullName: editForm.fullName,
         gender: editForm.gender,
         guardianName: editForm.guardianName,
+        guardianPhone: editForm.guardianPhone,
         ...(editForm.classId ? { classId: editForm.classId } : {}),
       };
 
@@ -470,6 +478,20 @@ const Siswa = () => {
                     value={form.guardianName}
                     onChange={(event) => setForm((prev) => ({ ...prev, guardianName: event.target.value }))}
                   />
+                </div>
+                <div className="space-y-2">
+                  <Label htmlFor="nomorWhatsAppOrangTua">Nomor WhatsApp Orang Tua/Wali</Label>
+                  <Input
+                    id="nomorWhatsAppOrangTua"
+                    type="tel"
+                    inputMode="tel"
+                    placeholder="Contoh: 081234567890"
+                    value={form.guardianPhone}
+                    onChange={(event) => setForm((prev) => ({ ...prev, guardianPhone: event.target.value }))}
+                  />
+                  <p className="text-xs text-muted-foreground">
+                    Dipakai untuk mengirim notifikasi absensi siswa.
+                  </p>
                 </div>
                 <DialogFooter>
                   <Button type="button" variant="outline" onClick={() => handleDialogOpenChange(false)}>
@@ -711,6 +733,20 @@ const Siswa = () => {
                 value={editForm.guardianName}
                 onChange={(event) => setEditForm((prev) => ({ ...prev, guardianName: event.target.value }))}
               />
+            </div>
+            <div className="space-y-2">
+              <Label htmlFor="edit-nomorWhatsAppOrangTua">Nomor WhatsApp Orang Tua/Wali</Label>
+              <Input
+                id="edit-nomorWhatsAppOrangTua"
+                type="tel"
+                inputMode="tel"
+                placeholder="Contoh: 081234567890"
+                value={editForm.guardianPhone}
+                onChange={(event) => setEditForm((prev) => ({ ...prev, guardianPhone: event.target.value }))}
+              />
+              <p className="text-xs text-muted-foreground">
+                Dipakai untuk mengirim notifikasi absensi siswa.
+              </p>
             </div>
             <DialogFooter>
               <Button type="button" variant="outline" onClick={() => handleEditOpenChange(false)}>

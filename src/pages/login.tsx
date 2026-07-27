@@ -9,7 +9,7 @@ import { Eye, EyeOff, Lock, Mail, ArrowLeft } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import BrandMark from "@/components/BrandMark";
 
-const brandName = "\u03A9hm Study Club";
+const brandName = "Ohm Study Club Attendance";
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -82,12 +82,12 @@ const Login = () => {
             </div>
             <div>
               <h1 className="text-xl font-extrabold">{brandName}</h1>
-              <p className="text-sm text-primary-foreground/75">Portal Absensi Bimbel</p>
+              <p className="text-sm text-primary-foreground/75">Attendance Portal</p>
             </div>
           </div>
           <h2 className="text-3xl font-extrabold leading-tight">Masuk untuk mencatat dan memantau kehadiran.</h2>
           <p className="mt-5 leading-7 text-primary-foreground/80">
-            Akses guru diarahkan ke pekerjaan absensi, kelas, siswa, dan enroll wajah. Informasi internal lain
+            Akses guru diarahkan ke pekerjaan absensi, kelas, dan siswa. Informasi internal lain
             tetap tidak ditampilkan di area guru.
           </p>
         </div>
@@ -198,7 +198,7 @@ const Login = () => {
           </Card>
 
           <p className="mt-6 text-center text-xs text-muted-foreground">
-            &copy; 2026 {brandName}. Portal Absensi Bimbel
+            &copy; 2026 {brandName}. Attendance Portal
           </p>
         </div>
       </div>

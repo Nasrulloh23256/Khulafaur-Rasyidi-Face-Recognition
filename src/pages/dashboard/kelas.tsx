@@ -4,7 +4,6 @@ import DashboardLayout from "@/components/DashboardLayout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -33,6 +32,7 @@ import {
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
 import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Select,
   SelectContent,
@@ -40,22 +40,10 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Checkbox } from "@/components/ui/checkbox";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import type { CheckedState } from "@radix-ui/react-checkbox";
-
-type AcademicYear = {
-  id: string;
-  name: string;
-  isActive?: boolean;
-};
-
-type Semester = {
-  id: string;
-  name: "GANJIL" | "GENAP";
-  academicYearId: string;
-};
+import { formatClassSchedules, scheduleDays, type ClassScheduleInput } from "@/lib/class-schedule";
 
 type Teacher = {
   id: string;
@@ -72,19 +60,112 @@ type Student = {
 type ClassItem = {
   id: string;
   name: string;
-  academicYear: AcademicYear;
-  semester: Semester;
   homeroomTeacher: Teacher | null;
+  schedules: (Omit<ClassScheduleInput, "teacherId"> & { teacherId: string | null; teacher: { fullName: string } | null })[];
   _count: { students: number };
 };
 
-const formatSemester = (value: "GANJIL" | "GENAP") => (value === "GANJIL" ? "Ganjil" : "Genap");
+const hasValidSchedules = (schedules: ClassScheduleInput[]) =>
+  schedules.length > 0 &&
+  schedules.every(
+    (schedule) => schedule.teacherId.trim() !== "" && schedule.startTime < schedule.endTime,
+  );
+
+const ScheduleFields = ({
+  schedules,
+  onChange,
+  idPrefix,
+  teachers,
+}: {
+  schedules: ClassScheduleInput[];
+  onChange: (schedules: ClassScheduleInput[]) => void;
+  idPrefix: string;
+  teachers: Teacher[];
+}) => {
+  const addSession = (dayOfWeek: number) =>
+    onChange(
+      [...schedules, { dayOfWeek, startTime: "15:00", endTime: "17:00", teacherId: teachers[0]?.id ?? "" }].sort(
+        (a, b) => a.dayOfWeek - b.dayOfWeek || a.startTime.localeCompare(b.startTime),
+      ),
+    );
+
+  const updateSession = (index: number, field: keyof Pick<ClassScheduleInput, "teacherId" | "startTime" | "endTime">, value: string) =>
+    onChange(schedules.map((schedule, scheduleIndex) => (scheduleIndex === index ? { ...schedule, [field]: value } : schedule)));
+
+  const removeSession = (index: number) => onChange(schedules.filter((_, scheduleIndex) => scheduleIndex !== index));
+
+  return (
+    <div className="space-y-3">
+      <div className="flex items-end justify-between gap-3">
+        <div>
+          <Label className="text-base">Jadwal Bimbel</Label>
+          <p className="mt-1 text-xs text-muted-foreground">Atur pengajar dan jam untuk setiap sesi kelas.</p>
+        </div>
+        <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+          {schedules.length} sesi
+        </span>
+      </div>
+      <div className="grid gap-3 rounded-xl border bg-muted/20 p-3 md:grid-cols-2">
+        {scheduleDays.map((day) => {
+          const daySchedules = schedules
+            .map((schedule, index) => ({ schedule, index }))
+            .filter((item) => item.schedule.dayOfWeek === day.value);
+          return (
+            <div key={day.value} className="rounded-lg border bg-background p-3 shadow-sm">
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <Label className="text-sm font-semibold">{day.label}</Label>
+                  <p className="text-[11px] text-muted-foreground">
+                    {daySchedules.length > 0 ? `${daySchedules.length} sesi terjadwal` : "Belum ada sesi"}
+                  </p>
+                </div>
+                <Button type="button" variant="outline" size="sm" className="h-8 px-2.5" onClick={() => addSession(day.value)} disabled={teachers.length === 0}>
+                  <Plus className="h-3.5 w-3.5" /> Tambah
+                </Button>
+              </div>
+              {daySchedules.length === 0 ? (
+                <div className="mt-3 rounded-md border border-dashed px-3 py-4 text-center text-xs text-muted-foreground">
+                  Klik Tambah untuk membuat sesi.
+                </div>
+              ) : (
+                <div className="mt-3 space-y-2">
+                  {daySchedules.map(({ schedule, index }) => (
+                    <div key={`${idPrefix}-${day.value}-${index}`} className="rounded-md border bg-muted/30 p-2.5">
+                      <div className="flex items-center gap-2">
+                        <Select value={schedule.teacherId} onValueChange={(value) => updateSession(index, "teacherId", value)}>
+                          <SelectTrigger className="h-9 min-w-0 flex-1 bg-background"><SelectValue placeholder="Pilih pengajar" /></SelectTrigger>
+                          <SelectContent>
+                            {teachers.map((teacher) => <SelectItem key={teacher.id} value={teacher.id}>{teacher.fullName}</SelectItem>)}
+                          </SelectContent>
+                        </Select>
+                        <Button type="button" variant="ghost" size="icon" className="h-9 w-9 shrink-0 text-destructive hover:bg-destructive/10 hover:text-destructive" onClick={() => removeSession(index)} aria-label="Hapus sesi"><Trash2 className="h-4 w-4" /></Button>
+                      </div>
+                      <div className="mt-2 grid grid-cols-[1fr_auto_1fr] items-center gap-2">
+                        <div>
+                          <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Mulai</span>
+                          <Input aria-label={`Jam mulai ${day.label}`} type="time" className="h-9 bg-background" value={schedule.startTime} onChange={(event) => updateSession(index, "startTime", event.target.value)} />
+                        </div>
+                        <span className="mt-5 text-xs text-muted-foreground">—</span>
+                        <div>
+                          <span className="mb-1 block text-[10px] font-medium uppercase tracking-wide text-muted-foreground">Selesai</span>
+                          <Input aria-label={`Jam selesai ${day.label}`} type="time" className="h-9 bg-background" value={schedule.endTime} onChange={(event) => updateSession(index, "endTime", event.target.value)} />
+                        </div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
+  );
+};
 
 const Kelas = () => {
   const { toast } = useToast();
   const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [years, setYears] = useState<AcademicYear[]>([]);
-  const [semesters, setSemesters] = useState<Semester[]>([]);
   const [teachers, setTeachers] = useState<Teacher[]>([]);
   const [unassignedStudents, setUnassignedStudents] = useState<Student[]>([]);
   const [searchQuery, setSearchQuery] = useState("");
@@ -99,19 +180,14 @@ const Kelas = () => {
   const [editTarget, setEditTarget] = useState<ClassItem | null>(null);
   const [form, setForm] = useState({
     name: "",
-    academicYearId: "",
-    semesterId: "",
     homeroomTeacherId: "none",
+    schedules: [] as ClassScheduleInput[],
   });
   const [editForm, setEditForm] = useState({
     homeroomTeacherId: "none",
     studentIds: [] as string[],
+    schedules: [] as ClassScheduleInput[],
   });
-
-  const filteredSemesters = useMemo(
-    () => semesters.filter((semester) => semester.academicYearId === form.academicYearId),
-    [semesters, form.academicYearId],
-  );
 
   const filteredClasses = useMemo(() => {
     if (!searchQuery) return classes;
@@ -140,21 +216,15 @@ const Kelas = () => {
   const loadData = async () => {
     setIsLoading(true);
     try {
-      const [classRes, yearRes, semesterRes, teacherRes] = await Promise.all([
+      const [classRes, teacherRes] = await Promise.all([
         fetch("/api/classes"),
-        fetch("/api/academic-years"),
-        fetch("/api/semesters"),
         fetch("/api/teachers"),
       ]);
 
       const classData = await classRes.json();
-      const yearData = await yearRes.json();
-      const semesterData = await semesterRes.json();
       const teacherData = await teacherRes.json();
 
       if (classRes.ok) setClasses(classData);
-      if (yearRes.ok) setYears(yearData);
-      if (semesterRes.ok) setSemesters(semesterData);
       if (teacherRes.ok) setTeachers(teacherData);
     } catch (error) {
       toast({
@@ -199,26 +269,6 @@ const Kelas = () => {
   }, []);
 
   useEffect(() => {
-    if (!form.academicYearId && years.length > 0) {
-      const activeYear = years.find((year) => year.isActive) ?? years[0];
-      if (activeYear) {
-        setForm((prev) => ({ ...prev, academicYearId: activeYear.id }));
-      }
-    }
-  }, [years, form.academicYearId]);
-
-  useEffect(() => {
-    if (filteredSemesters.length === 0) {
-      setForm((prev) => ({ ...prev, semesterId: "" }));
-      return;
-    }
-    const hasSelected = filteredSemesters.some((semester) => semester.id === form.semesterId);
-    if (!hasSelected) {
-      setForm((prev) => ({ ...prev, semesterId: filteredSemesters[0].id }));
-    }
-  }, [filteredSemesters, form.semesterId]);
-
-  useEffect(() => {
     if (isDialogOpen) {
       loadData();
     }
@@ -235,6 +285,12 @@ const Kelas = () => {
     setEditForm({
       homeroomTeacherId: kelas.homeroomTeacher?.id ?? "none",
       studentIds: [],
+      schedules: kelas.schedules.map((schedule) => ({
+        dayOfWeek: schedule.dayOfWeek,
+        startTime: schedule.startTime,
+        endTime: schedule.endTime,
+        teacherId: schedule.teacherId ?? kelas.homeroomTeacher?.id ?? "",
+      })),
     });
     setIsEditOpen(true);
   };
@@ -243,7 +299,7 @@ const Kelas = () => {
     setIsEditOpen(open);
     if (!open) {
       setEditTarget(null);
-      setEditForm({ homeroomTeacherId: "none", studentIds: [] });
+      setEditForm({ homeroomTeacherId: "none", studentIds: [], schedules: [] });
       setUnassignedStudents([]);
     }
   };
@@ -263,10 +319,10 @@ const Kelas = () => {
   const handleSubmit = async (event: React.FormEvent) => {
     event.preventDefault();
 
-    if (!form.name || !form.academicYearId || !form.semesterId) {
+    if (!form.name || !hasValidSchedules(form.schedules)) {
       toast({
         title: "Data belum lengkap",
-        description: "Nama kelas, tahun ajaran, dan semester wajib diisi",
+        description: "Nama kelas dan minimal satu jadwal dengan jam yang valid wajib diisi",
         variant: "destructive",
       });
       return;
@@ -279,9 +335,8 @@ const Kelas = () => {
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify({
           name: form.name,
-          academicYearId: form.academicYearId,
-          semesterId: form.semesterId,
           homeroomTeacherId: form.homeroomTeacherId === "none" ? null : form.homeroomTeacherId,
+          schedules: form.schedules,
         }),
       });
 
@@ -301,7 +356,7 @@ const Kelas = () => {
         description: "Kelas berhasil ditambahkan",
       });
 
-      setForm((prev) => ({ ...prev, name: "", homeroomTeacherId: "none" }));
+      setForm({ name: "", homeroomTeacherId: "none", schedules: [] });
       setIsDialogOpen(false);
       loadData();
     } catch (error) {
@@ -319,6 +374,15 @@ const Kelas = () => {
     event.preventDefault();
     if (!editTarget) return;
 
+    if (!hasValidSchedules(editForm.schedules)) {
+      toast({
+        title: "Jadwal belum lengkap",
+        description: "Pilih minimal satu hari dan pastikan jam selesai setelah jam mulai.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUpdating(true);
     try {
       const response = await fetch(`/api/classes/${editTarget.id}`, {
@@ -327,6 +391,7 @@ const Kelas = () => {
         body: JSON.stringify({
           homeroomTeacherId: editForm.homeroomTeacherId === "none" ? null : editForm.homeroomTeacherId,
           studentIds: editForm.studentIds,
+          schedules: editForm.schedules,
         }),
       });
 
@@ -415,73 +480,52 @@ const Kelas = () => {
                 Tambah Kelas
               </Button>
             </DialogTrigger>
-            <DialogContent>
-              <DialogHeader>
+            <DialogContent className="flex max-h-[92vh] w-[calc(100%-1.5rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0">
+              <DialogHeader className="shrink-0 border-b px-5 py-5 pr-12 sm:px-6">
                 <DialogTitle>Tambah Kelas Baru</DialogTitle>
                 <DialogDescription>Masukkan informasi kelas baru di bawah ini.</DialogDescription>
               </DialogHeader>
-              <form onSubmit={handleSubmit} className="space-y-4 py-4">
-                <div className="space-y-2">
-                  <Label htmlFor="name">Nama Kelas</Label>
-                  <Input
-                    id="name"
-                    placeholder="Contoh: TK A1"
-                    value={form.name}
-                    onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
-                    required
+              <form onSubmit={handleSubmit} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+                <div className="flex-1 space-y-5 overflow-y-auto px-5 py-5 sm:px-6">
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-2">
+                      <Label htmlFor="name">Nama Kelas</Label>
+                      <Input
+                        id="name"
+                        placeholder="Contoh: Bimbel SD"
+                        value={form.name}
+                        onChange={(event) => setForm((prev) => ({ ...prev, name: event.target.value }))}
+                        required
+                      />
+                    </div>
+
+                    <div className="space-y-2">
+                      <Label>Penanggung Jawab Kelas (opsional)</Label>
+                      <Select
+                        value={form.homeroomTeacherId}
+                        onValueChange={(value) => setForm((prev) => ({ ...prev, homeroomTeacherId: value }))}
+                      >
+                        <SelectTrigger><SelectValue placeholder="Pilih pengajar" /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="none">Belum ditentukan</SelectItem>
+                          {sortedTeachers.length === 0 ? (
+                            <SelectItem value="empty" disabled>Belum ada pengajar</SelectItem>
+                          ) : sortedTeachers.map((teacher) => (
+                            <SelectItem key={teacher.id} value={teacher.id}>{teacher.fullName}</SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+                  </div>
+
+                  <ScheduleFields
+                    schedules={form.schedules}
+                    onChange={(schedules) => setForm((prev) => ({ ...prev, schedules }))}
+                    idPrefix="create-schedule"
+                    teachers={sortedTeachers}
                   />
                 </div>
-
-                <div className="space-y-2">
-                  <Label>Semester</Label>
-                  <Select
-                    value={form.semesterId}
-                    onValueChange={(value) => setForm((prev) => ({ ...prev, semesterId: value }))}
-                  >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih semester" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    {filteredSemesters.length === 0 ? (
-                      <SelectItem value="empty" disabled>
-                        Belum ada semester
-                      </SelectItem>
-                    ) : (
-                      filteredSemesters.map((semester) => (
-                        <SelectItem key={semester.id} value={semester.id}>
-                          {formatSemester(semester.name)}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-                <div className="space-y-2">
-                  <Label>Pengajar (opsional)</Label>
-                  <Select
-                    value={form.homeroomTeacherId}
-                    onValueChange={(value) => setForm((prev) => ({ ...prev, homeroomTeacherId: value }))}
-                  >
-                  <SelectTrigger>
-                    <SelectValue placeholder="Pilih pengajar" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="none">Belum ditentukan</SelectItem>
-                    {sortedTeachers.length === 0 ? (
-                      <SelectItem value="empty" disabled>
-                        Belum ada pengajar
-                      </SelectItem>
-                    ) : (
-                      sortedTeachers.map((teacher) => (
-                        <SelectItem key={teacher.id} value={teacher.id}>
-                          {teacher.fullName}
-                        </SelectItem>
-                      ))
-                    )}
-                  </SelectContent>
-                </Select>
-              </div>
-                <DialogFooter>
+                <DialogFooter className="shrink-0 border-t bg-background px-5 py-4 sm:px-6">
                   <Button type="button" variant="outline" onClick={() => setIsDialogOpen(false)}>
                     Batal
                   </Button>
@@ -541,8 +585,7 @@ const Kelas = () => {
                   <TableHead>No</TableHead>
                   <TableHead>Nama Kelas</TableHead>
                   <TableHead>Pengajar</TableHead>
-                  <TableHead>Tahun Ajaran</TableHead>
-                  <TableHead>Semester</TableHead>
+                  <TableHead>Jadwal Bimbel</TableHead>
                   <TableHead className="text-center">Total Siswa</TableHead>
                   <TableHead className="text-right">Aksi</TableHead>
                 </TableRow>
@@ -550,14 +593,14 @@ const Kelas = () => {
               <TableBody>
                 {isLoading && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                       Memuat data...
                     </TableCell>
                   </TableRow>
                 )}
                 {!isLoading && filteredClasses.length === 0 && (
                   <TableRow>
-                    <TableCell colSpan={7} className="text-center text-muted-foreground">
+                    <TableCell colSpan={6} className="text-center text-muted-foreground">
                       Belum ada kelas.
                     </TableCell>
                   </TableRow>
@@ -567,11 +610,8 @@ const Kelas = () => {
                     <TableCell className="font-medium">{index + 1}</TableCell>
                     <TableCell className="font-semibold text-foreground">{kelas.name}</TableCell>
                     <TableCell>{kelas.homeroomTeacher?.fullName ?? "-"}</TableCell>
-                    <TableCell>{kelas.academicYear?.name ?? "-"}</TableCell>
-                    <TableCell>
-                      <Badge className="border-transparent bg-primary/10 text-primary">
-                        {formatSemester(kelas.semester.name)}
-                      </Badge>
+                    <TableCell className="max-w-[280px] text-sm text-muted-foreground">
+                      {kelas.schedules.length > 0 ? formatClassSchedules(kelas.schedules) : "Belum diatur"}
                     </TableCell>
                     <TableCell className="text-center">
                       <span className="inline-flex items-center justify-center w-8 h-8 rounded-full bg-muted text-foreground font-semibold text-sm">
@@ -607,47 +647,58 @@ const Kelas = () => {
       </div>
 
       <Dialog open={isEditOpen} onOpenChange={handleEditOpenChange}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
+        <DialogContent className="flex max-h-[92vh] w-[calc(100%-1.5rem)] max-w-5xl flex-col gap-0 overflow-hidden p-0">
+          <DialogHeader className="shrink-0 border-b px-5 py-5 pr-12 sm:px-6">
             <DialogTitle>Edit Kelas</DialogTitle>
             <DialogDescription>
-              Atur pengajar dan tambahkan siswa baru untuk {editTarget?.name ?? "kelas ini"}.
+              Atur jadwal, pengajar, dan siswa untuk {editTarget?.name ?? "kelas ini"}.
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleUpdate} className="space-y-4 py-4">
-            <div className="space-y-2">
-              <Label>Nama Kelas</Label>
-              <Input value={editTarget?.name ?? ""} disabled />
-            </div>
-            <div className="space-y-2">
-              <Label>Pengajar</Label>
-              <Select
-                value={editForm.homeroomTeacherId}
-                onValueChange={(value) => setEditForm((prev) => ({ ...prev, homeroomTeacherId: value }))}
-              >
-                <SelectTrigger>
-                  <SelectValue placeholder="Pilih pengajar" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="none">Belum ditentukan</SelectItem>
-                  {sortedTeachers.length === 0 ? (
-                    <SelectItem value="empty" disabled>
-                      Belum ada pengajar
-                    </SelectItem>
-                  ) : (
-                    sortedTeachers.map((teacher) => (
-                      <SelectItem key={teacher.id} value={teacher.id}>
-                        {teacher.fullName}
-                      </SelectItem>
-                    ))
-                  )}
-                </SelectContent>
-              </Select>
-            </div>
-            <div className="space-y-2">
-              <Label>Tambah Siswa (belum punya kelas)</Label>
-              <ScrollArea className="h-56 rounded-md border">
-                <div className="space-y-2 p-2">
+          <form onSubmit={handleUpdate} className="flex min-h-0 flex-1 flex-col overflow-hidden">
+            <div className="flex-1 space-y-6 overflow-y-auto px-5 py-5 sm:px-6">
+              <div className="grid gap-4 rounded-xl border bg-muted/20 p-4 sm:grid-cols-2">
+                <div className="space-y-2">
+                  <Label>Nama Kelas</Label>
+                  <Input value={editTarget?.name ?? ""} disabled className="bg-background" />
+                </div>
+                <div className="space-y-2">
+                  <Label>Penanggung Jawab Kelas</Label>
+                  <Select
+                    value={editForm.homeroomTeacherId}
+                    onValueChange={(value) => setEditForm((prev) => ({ ...prev, homeroomTeacherId: value }))}
+                  >
+                    <SelectTrigger className="bg-background"><SelectValue placeholder="Pilih pengajar" /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="none">Belum ditentukan</SelectItem>
+                      {sortedTeachers.length === 0 ? (
+                        <SelectItem value="empty" disabled>Belum ada pengajar</SelectItem>
+                      ) : sortedTeachers.map((teacher) => (
+                        <SelectItem key={teacher.id} value={teacher.id}>{teacher.fullName}</SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <ScheduleFields
+                schedules={editForm.schedules}
+                onChange={(schedules) => setEditForm((prev) => ({ ...prev, schedules }))}
+                idPrefix="edit-schedule"
+                teachers={sortedTeachers}
+              />
+
+              <div className="space-y-3 rounded-xl border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <div>
+                    <Label className="text-base">Tambah Siswa</Label>
+                    <p className="mt-1 text-xs text-muted-foreground">Hanya menampilkan siswa yang belum memiliki kelas.</p>
+                  </div>
+                  <span className="shrink-0 rounded-full bg-primary/10 px-3 py-1 text-xs font-semibold text-primary">
+                    {editForm.studentIds.length} dipilih
+                  </span>
+                </div>
+                <ScrollArea className="h-44 rounded-lg border bg-muted/10">
+                  <div className="space-y-1 p-2">
                   {isLoadingStudents ? (
                     <p className="text-sm text-muted-foreground px-2 py-1">Memuat data siswa...</p>
                   ) : unassignedStudents.length === 0 ? (
@@ -674,11 +725,11 @@ const Kelas = () => {
                       </label>
                     ))
                   )}
-                </div>
-              </ScrollArea>
-              <p className="text-xs text-muted-foreground">Dipilih: {editForm.studentIds.length} siswa.</p>
+                  </div>
+                </ScrollArea>
+              </div>
             </div>
-            <DialogFooter>
+            <DialogFooter className="shrink-0 border-t bg-background px-5 py-4 sm:px-6">
               <Button type="button" variant="outline" onClick={() => handleEditOpenChange(false)}>
                 Batal
               </Button>

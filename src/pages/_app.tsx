@@ -16,6 +16,9 @@ const App = ({ Component, pageProps }: AppProps) => {
   return (
     <QueryClientProvider client={queryClient}>
       <Head>
+        <title>Ohm Study Club Attendance</title>
+        <meta name="application-name" content="Ohm Study Club Attendance" />
+        <meta name="description" content="Portal absensi Ohm Study Club" />
         <link rel="icon" href={appIcon} />
         <link rel="apple-touch-icon" href={appIcon} />
       </Head>

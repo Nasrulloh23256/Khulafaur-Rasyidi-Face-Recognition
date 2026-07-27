@@ -1,5 +1,6 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { ensureTeacherAttendanceTable } from "@/lib/teacher-attendance";
 import { promises as fs } from "node:fs";
 import path from "node:path";
 import { randomUUID } from "node:crypto";
@@ -76,6 +77,8 @@ const computeMeanEmbedding = (samples: number[][]) => {
 };
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await ensureTeacherAttendanceTable();
+
   if (req.method !== "POST") {
     res.setHeader("Allow", "POST");
     return res.status(405).json({ error: "Method not allowed" });

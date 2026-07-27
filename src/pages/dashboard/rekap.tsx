@@ -30,22 +30,6 @@ type ClassItem = {
   name: string;
 };
 
-type AcademicYear = {
-  id: string;
-  name: string;
-  startDate: string;
-  endDate: string;
-  isActive: boolean;
-};
-
-type Semester = {
-  id: string;
-  name: "GANJIL" | "GENAP";
-  startDate: string;
-  endDate: string;
-  academicYearId: string;
-};
-
 type RecapStudent = {
   id: string;
   fullName: string;
@@ -122,11 +106,7 @@ const parseMonthValue = (value: string) => {
 const RekapAbsensi = () => {
   const { toast } = useToast();
   const [classes, setClasses] = useState<ClassItem[]>([]);
-  const [years, setYears] = useState<AcademicYear[]>([]);
-  const [semesters, setSemesters] = useState<Semester[]>([]);
   const [selectedClassId, setSelectedClassId] = useState("");
-  const [selectedYearId, setSelectedYearId] = useState("");
-  const [selectedSemesterId, setSelectedSemesterId] = useState("all");
   const [selectedMonth, setSelectedMonth] = useState("");
   const [selectedWeek, setSelectedWeek] = useState("all");
   const [dates, setDates] = useState<string[]>([]);
@@ -139,27 +119,13 @@ const RekapAbsensi = () => {
     [classes, selectedClassId],
   );
 
-  const selectedYear = useMemo(
-    () => years.find((year) => year.id === selectedYearId) ?? null,
-    [years, selectedYearId],
-  );
-
-  const semesterOptions = useMemo(
-    () => semesters.filter((semester) => (selectedYearId ? semester.academicYearId === selectedYearId : true)),
-    [semesters, selectedYearId],
-  );
-
-  const selectedSemester = useMemo(() => {
-    if (selectedSemesterId === "all") return null;
-    return semesterOptions.find((semester) => semester.id === selectedSemesterId) ?? null;
-  }, [semesterOptions, selectedSemesterId]);
-
   const baseRange = useMemo(() => {
-    if (!selectedYear) return null;
-    const start = new Date(selectedSemester?.startDate ?? selectedYear.startDate);
-    const end = new Date(selectedSemester?.endDate ?? selectedYear.endDate);
-    return { start, end };
-  }, [selectedYear, selectedSemester]);
+    const currentYear = new Date().getFullYear();
+    return {
+      start: new Date(currentYear, 0, 1),
+      end: new Date(currentYear, 11, 31),
+    };
+  }, []);
 
   const monthOptions = useMemo(() => {
     if (!baseRange) return [];
@@ -204,22 +170,14 @@ const RekapAbsensi = () => {
   useEffect(() => {
     const loadFilters = async () => {
       try {
-        const [classRes, yearRes, semesterRes] = await Promise.all([
-          fetch("/api/classes"),
-          fetch("/api/academic-years"),
-          fetch("/api/semesters"),
-        ]);
+        const classRes = await fetch("/api/classes");
         const classData = await classRes.json();
-        const yearData = await yearRes.json();
-        const semesterData = await semesterRes.json();
 
         if (classRes.ok) setClasses(classData);
-        if (yearRes.ok) setYears(yearData);
-        if (semesterRes.ok) setSemesters(semesterData);
       } catch (error) {
         toast({
           title: "Gagal memuat filter",
-          description: "Tidak bisa mengambil data kelas, semester, atau tahun ajaran",
+          description: "Tidak bisa mengambil data kelas",
           variant: "destructive",
         });
       }
@@ -232,19 +190,6 @@ const RekapAbsensi = () => {
       setSelectedClassId(classes[0].id);
     }
   }, [classes, selectedClassId]);
-
-  useEffect(() => {
-    if (!selectedYearId && years.length > 0) {
-      const activeYear = years.find((year) => year.isActive) ?? years[0];
-      if (activeYear) setSelectedYearId(activeYear.id);
-    }
-  }, [years, selectedYearId]);
-
-  useEffect(() => {
-    if (selectedSemesterId !== "all" && !semesterOptions.some((item) => item.id === selectedSemesterId)) {
-      setSelectedSemesterId("all");
-    }
-  }, [semesterOptions, selectedSemesterId]);
 
   useEffect(() => {
     if (monthOptions.length === 0) {
@@ -401,19 +346,6 @@ const RekapAbsensi = () => {
                       </SelectItem>
                     ))
                   )}
-                </SelectContent>
-              </Select>
-              <Select value={selectedSemesterId} onValueChange={setSelectedSemesterId}>
-                <SelectTrigger className="w-[140px]">
-                  <SelectValue placeholder="Semester" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">Semua Semester</SelectItem>
-                  {semesterOptions.map((semester) => (
-                    <SelectItem key={semester.id} value={semester.id}>
-                      {semester.name === "GANJIL" ? "Ganjil" : "Genap"}
-                    </SelectItem>
-                  ))}
                 </SelectContent>
               </Select>
               <Select value={selectedMonth} onValueChange={setSelectedMonth}>

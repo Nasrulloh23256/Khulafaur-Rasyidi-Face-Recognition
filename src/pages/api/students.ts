@@ -14,6 +14,14 @@ export const config = {
 
 const isGender = (value: unknown): value is "MALE" | "FEMALE" => value === "MALE" || value === "FEMALE";
 
+const parseGuardianPhone = (value: unknown) => {
+  if (value === undefined || value === null || value === "") return null;
+  if (typeof value !== "string") return undefined;
+
+  const digits = value.replace(/\D/g, "");
+  return digits.length >= 8 && digits.length <= 16 ? value.trim() : undefined;
+};
+
 const MAX_IMAGE_BYTES = 2 * 1024 * 1024;
 
 const saveBase64Image = async (dataUrl: string) => {
@@ -47,6 +55,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         studentNumber: true,
         gender: true,
         guardianName: true,
+        guardianPhone: true,
         classId: true,
         faceImageUrl: true,
         faceEmbedding: true,
@@ -64,7 +73,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   if (req.method === "POST") {
-    const { fullName, studentNumber, gender, guardianName, classId, faceImage, faceDescriptor } = req.body ?? {};
+    const { fullName, studentNumber, gender, guardianName, guardianPhone, classId, faceImage, faceDescriptor } = req.body ?? {};
 
     if (typeof fullName !== "string" || fullName.trim() === "") {
       return res.status(400).json({ error: "Nama siswa wajib diisi" });
@@ -80,6 +89,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
 
     if (guardianName !== undefined && guardianName !== null && typeof guardianName !== "string") {
       return res.status(400).json({ error: "Nama orang tua tidak valid" });
+    }
+
+    const cleanGuardianPhone = parseGuardianPhone(guardianPhone);
+    if (cleanGuardianPhone === undefined) {
+      return res.status(400).json({ error: "Nomor WhatsApp orang tua tidak valid" });
     }
 
     if (typeof classId !== "string" || classId.trim() === "") {
@@ -136,6 +150,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           studentNumber: cleanStudentNumber,
           gender,
           guardianName: cleanGuardianName,
+          guardianPhone: cleanGuardianPhone,
           classId,
           faceImageUrl,
           faceEmbedding,
@@ -146,6 +161,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
           studentNumber: true,
           gender: true,
           guardianName: true,
+          guardianPhone: true,
           classId: true,
           faceImageUrl: true,
           class: { select: { id: true, name: true } },

@@ -1,5 +1,13 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import {
+  ensureStudentAttendanceColumns,
+  serializeStudentAttendanceAreaStatus,
+  formatStudentAttendanceTime,
+  serializeStudentAttendanceLocation,
+} from "@/lib/student-attendance";
+import { getClassAttendanceScheduleStatus } from "@/lib/class-schedule";
+import { ensureClassScheduleTable } from "@/lib/class-schedule-storage";
 
 const startOfDay = (value: Date) => {
   const date = new Date(value);
@@ -7,14 +15,10 @@ const startOfDay = (value: Date) => {
   return date;
 };
 
-const formatTime = (value: Date | null) => {
-  if (!value) return null;
-  const hours = String(value.getHours()).padStart(2, "0");
-  const minutes = String(value.getMinutes()).padStart(2, "0");
-  return `${hours}:${minutes}`;
-};
-
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await ensureStudentAttendanceColumns();
+  await ensureClassScheduleTable();
+
   if (req.method !== "GET") {
     res.setHeader("Allow", "GET");
     return res.status(405).json({ error: "Method not allowed" });
@@ -36,7 +40,11 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   const [kelas, students] = await Promise.all([
     prisma.class.findUnique({
       where: { id: classId },
-      select: { id: true, name: true },
+      select: {
+        id: true,
+        name: true,
+        schedules: { select: { dayOfWeek: true, startTime: true, endTime: true }, orderBy: { dayOfWeek: "asc" } },
+      },
     }),
     prisma.student.findMany({
       where: { classId },
@@ -47,10 +55,17 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         studentNumber: true,
         gender: true,
         faceImageUrl: true,
-        faceEmbedding: true,
         attendances: {
           where: { date },
-          select: { status: true, checkInTime: true },
+          select: {
+            id: true,
+            status: true,
+            checkInTime: true,
+            checkInLatitude: true,
+            checkInLongitude: true,
+            checkInAccuracy: true,
+            checkInPhotoUrl: true,
+          },
         },
       },
     }),
@@ -68,11 +83,19 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       studentNumber: student.studentNumber,
       gender: student.gender,
       faceImageUrl: student.faceImageUrl,
-      hasFace: !!student.faceEmbedding,
+      attendanceId: attendance?.id ?? null,
       status: attendance?.status ?? null,
-      checkInTime: formatTime(attendance?.checkInTime ?? null),
+      checkInTime: formatStudentAttendanceTime(attendance?.checkInTime ?? null),
+      checkInPhotoUrl: attendance?.checkInPhotoUrl ?? null,
+      checkInLocation: serializeStudentAttendanceLocation(attendance),
+      checkInAreaStatus: serializeStudentAttendanceAreaStatus(attendance),
     };
   });
 
-  return res.status(200).json({ class: kelas, date: date.toISOString(), students: data });
+  return res.status(200).json({
+    class: kelas,
+    date: date.toISOString(),
+    scheduleStatus: getClassAttendanceScheduleStatus(kelas.schedules),
+    students: data,
+  });
 }

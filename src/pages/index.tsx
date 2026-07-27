@@ -26,13 +26,13 @@ import {
   Users,
 } from "lucide-react";
 
-const brandName = "\u03A9hm Study Club";
+const brandName = "Ohm Study Club Attendance";
 
 const features = [
   {
     icon: Camera,
-    title: "Absensi Wajah",
-    description: "Pencatatan hadir siswa lebih cepat dengan verifikasi wajah di dashboard.",
+    title: "Absensi Foto & Lokasi",
+    description: "Pencatatan hadir lebih jelas dengan bukti foto langsung dan titik lokasi.",
   },
   {
     icon: Users,
@@ -169,7 +169,7 @@ const Index = () => {
               <BrandMark className="h-12 w-12" textClassName="text-xl" />
               <div>
                 <h1 className="text-lg font-extrabold leading-tight text-foreground">{brandName}</h1>
-                <p className="text-xs font-medium text-muted-foreground">Portal Absensi Bimbel</p>
+                <p className="text-xs font-medium text-muted-foreground">Attendance Portal</p>
               </div>
             </Link>
 
@@ -210,7 +210,7 @@ const Index = () => {
                 >
                   <Sparkles className="h-4 w-4" />
                   <ShinyText
-                    text="Absensi digital berbasis face recognition"
+                    text="Absensi digital berbasis foto dan lokasi"
                     className="text-sm font-medium"
                     color="currentColor"
                     shineColor="rgba(226, 232, 240, 0.95)"
@@ -223,7 +223,7 @@ const Index = () => {
                   className="max-w-2xl text-4xl font-extrabold leading-tight text-foreground md:text-5xl lg:text-6xl"
                   variants={fadeUp}
                 >
-                  Absensi Bimbel <span className="relative inline-block text-primary">Ceria</span> & Cerdas
+                  Ohm Study Club <span className="relative inline-block text-primary">Attendance</span>
                 </motion.h2>
 
                 <motion.p className="mt-6 max-w-xl text-base leading-8 text-muted-foreground md:text-lg" variants={fadeUp}>
@@ -424,7 +424,7 @@ const Index = () => {
                 <Shield className="mb-6 h-10 w-10 opacity-90" />
                 <h3 className="text-2xl font-extrabold">Akses dibuat ringkas untuk pengajar.</h3>
                 <p className="mt-4 leading-7 text-primary-foreground/80">
-                  Dashboard guru diarahkan ke kehadiran, kelas, siswa, dan enroll wajah. Area admin tetap terpisah
+                  Dashboard guru diarahkan ke kehadiran, kelas, siswa, dan absensi pengajar. Area admin tetap terpisah
                   untuk pengelolaan data lengkap.
                 </p>
                 <Button asChild variant="accent" size="lg" className="mt-7">
@@ -576,7 +576,7 @@ const Index = () => {
         <div className="container mx-auto flex flex-col items-center justify-between gap-4 px-4 md:flex-row">
           <div className="flex items-center gap-3">
             <BrandMark className="h-10 w-10 flex-shrink-0" textClassName="text-lg" />
-            <span className="text-sm font-medium text-muted-foreground">&copy; 2026 {brandName}. Portal Absensi Bimbel.</span>
+            <span className="text-sm font-medium text-muted-foreground">&copy; 2026 {brandName}. Attendance Portal.</span>
           </div>
           <div className="flex items-center gap-6 text-sm font-semibold text-muted-foreground">
             <a href="#beranda" className="transition-colors hover:text-primary">

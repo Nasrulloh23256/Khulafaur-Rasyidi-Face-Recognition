@@ -5,7 +5,6 @@ import {
   GraduationCap, 
   ClipboardCheck, 
   BarChart3, 
-  Calendar, 
   Settings, 
   LogOut,
   BookOpen,
@@ -17,7 +16,8 @@ import {
   Bell,
   Search,
   Camera,
-  UserCheck
+  UserCheck,
+  Wallet
 } from "lucide-react";
 import Link from "next/link";
 import { useRouter } from "next/router";
@@ -29,13 +29,12 @@ const adminMenuItems = [
   { icon: LayoutDashboard, label: "Dashboard", path: "/dashboard" },
   { icon: BookOpen, label: "Kelas", path: "/dashboard/kelas" },
   { icon: GraduationCap, label: "Siswa", path: "/dashboard/siswa" },
-  { icon: Camera, label: "Enroll Wajah", path: "/dashboard/enroll-wajah" },
   { icon: Users, label: "Pengajar", path: "/dashboard/wali-kelas" },
   { icon: UserCheck, label: "Absensi Pengajar", path: "/dashboard/absensi-pengajar" },
+  { icon: Wallet, label: "Penggajian", path: "/dashboard/penggajian-pengajar" },
   { icon: Camera, label: "Kehadiran", path: "/dashboard/kehadiran" },
   { icon: FileText, label: "Laporan", path: "/dashboard/laporan" },
   { icon: ClipboardCheck, label: "Rekap Absensi", path: "/dashboard/rekap" },
-  { icon: Calendar, label: "Semester", path: "/dashboard/semester" },
   { icon: UserCog, label: "Super Admin", path: "/dashboard/admin" },
 ];
 
@@ -44,7 +43,6 @@ const teacherMenuItems = [
   { icon: Camera, label: "Kehadiran", path: "/dashboard/kehadiran" },
   { icon: BookOpen, label: "Kelas", path: "/dashboard/kelas" },
   { icon: GraduationCap, label: "Siswa", path: "/dashboard/siswa" },
-  { icon: Camera, label: "Enroll Wajah", path: "/dashboard/enroll-wajah" },
 ];
 
 type AuthUser = {
@@ -142,9 +140,9 @@ const DashboardLayout = ({ children, title, subtitle }: DashboardLayoutProps) =>
           {!sidebarCollapsed && (
             <div className="overflow-hidden">
               <h2 className="font-bold text-sidebar-foreground text-sm leading-tight">
-                {"\u03A9hm Study Club"}
+                Ohm Study Club
               </h2>
-              <p className="text-xs text-sidebar-foreground/70">Absensi Bimbel</p>
+              <p className="text-xs text-sidebar-foreground/70">Attendance</p>
             </div>
           )}
         </div>

@@ -1,7 +1,10 @@
 import type { NextApiRequest, NextApiResponse } from "next";
 import { prisma } from "@/lib/prisma";
+import { ensureTeacherAttendanceTable } from "@/lib/teacher-attendance";
 
 export default async function handler(req: NextApiRequest, res: NextApiResponse) {
+  await ensureTeacherAttendanceTable();
+
   if (req.method === "GET") {
     const teachers = await prisma.teacher.findMany({
       orderBy: { createdAt: "desc" },
