@@ -208,7 +208,6 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
             },
           },
         }),
-        }),
         prisma.teacherAttendance.findMany({
           where: { teacherId: teacher.id },
           orderBy: [{ date: "desc" }, { checkInTime: "desc" }],
