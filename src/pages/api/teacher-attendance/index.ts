@@ -3,6 +3,7 @@ import { prisma } from "@/lib/prisma";
 import {
   ensureTeacherAttendanceTable,
   formatDateKey,
+  formatTeacherAttendanceTime,
   getScheduleDayOfWeek,
   getTeacherAttendanceStatus,
   getTeacherSessionAvailability,
