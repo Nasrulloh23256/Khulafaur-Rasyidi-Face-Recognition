@@ -75,9 +75,6 @@ export const ensureTeacherAttendanceTable = async () => {
       await prisma.$executeRawUnsafe(
         `CREATE INDEX IF NOT EXISTS "TeacherAttendance_teacherId_date_idx" ON "TeacherAttendance"("teacherId", "date")`,
       );
-      await prisma.$executeRawUnsafe(
-        `CREATE UNIQUE INDEX IF NOT EXISTS "TeacherAttendance_teacherId_date_key" ON "TeacherAttendance"("teacherId", "date")`,
-      );
       await prisma.$executeRawUnsafe(`
         DO $$
         BEGIN

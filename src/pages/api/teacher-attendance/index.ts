@@ -40,8 +40,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       }
 
       const [today, recent] = await Promise.all([
-        prisma.teacherAttendance.findUnique({
-          where: { teacherId_date: { teacherId: teacher.id, date } },
+        prisma.teacherAttendance.findFirst({
+          where: { teacherId: teacher.id, date },
+          orderBy: { createdAt: "desc" },
           select: { id: true, date: true, checkInTime: true, checkOutTime: true, notes: true },
         }),
         prisma.teacherAttendance.findMany({
@@ -71,6 +72,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
         classes: { select: { id: true, name: true } },
         teacherAttendances: {
           where: { date },
+          orderBy: { createdAt: "desc" },
           take: 1,
           select: { id: true, date: true, checkInTime: true, checkOutTime: true, notes: true },
         },
@@ -128,23 +130,22 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     const attendanceAction = resolvedAction as AttendanceAction;
 
     if (attendanceAction === "check-in") {
-      const existing = await prisma.teacherAttendance.findUnique({
-        where: { teacherId_date: { teacherId: teacher.id, date } },
+      const existing = await prisma.teacherAttendance.findFirst({
+        where: { teacherId: teacher.id, date },
+        orderBy: { createdAt: "desc" },
         select: { id: true, date: true, checkInTime: true, checkOutTime: true, notes: true },
       });
 
-      if (existing?.checkInTime) {
+      if (existing?.checkInTime && !existing.checkOutTime) {
         return res.status(409).json({
-          error: "Pengajar sudah absen datang hari ini",
+          error: "Pengajar sudah absen datang dan belum absen pulang",
           attendance: serializeTeacherAttendance(existing),
           status: getStatus(existing),
         });
       }
 
-      const attendance = await prisma.teacherAttendance.upsert({
-        where: { teacherId_date: { teacherId: teacher.id, date } },
-        create: { teacherId: teacher.id, date, checkInTime: now },
-        update: { checkInTime: now },
+      const attendance = await prisma.teacherAttendance.create({
+        data: { teacherId: teacher.id, date, checkInTime: now },
         select: { id: true, date: true, checkInTime: true, checkOutTime: true, notes: true },
       });
 
@@ -155,8 +156,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
       });
     }
 
-    const existing = await prisma.teacherAttendance.findUnique({
-      where: { teacherId_date: { teacherId: teacher.id, date } },
+    const existing = await prisma.teacherAttendance.findFirst({
+      where: { teacherId: teacher.id, date },
+      orderBy: { createdAt: "desc" },
       select: { id: true, date: true, checkInTime: true, checkOutTime: true, notes: true },
     });
 

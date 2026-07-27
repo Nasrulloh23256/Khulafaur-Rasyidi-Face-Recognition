@@ -127,16 +127,20 @@ model Student {
 }
 
 model Attendance {
-  id          String           @id @default(cuid())
-  studentId   String
-  classId     String?
-  date        DateTime
-  status      AttendanceStatus
-  checkInTime DateTime?
-  notes       String?
-  createdById String?
-  createdAt   DateTime         @default(now())
-  updatedAt   DateTime         @updatedAt
+  id               String           @id @default(cuid())
+  studentId        String
+  classId          String?
+  date             DateTime
+  status           AttendanceStatus
+  checkInTime      DateTime?
+  checkInLatitude  Float?
+  checkInLongitude Float?
+  checkInAccuracy  Float?
+  checkInPhotoUrl  String?
+  notes            String?
+  createdById      String?
+  createdAt        DateTime         @default(now())
+  updatedAt        DateTime         @updatedAt
 
   student   Student @relation(fields: [studentId], references: [id])
   class     Class?  @relation(fields: [classId], references: [id])
@@ -148,19 +152,43 @@ model Attendance {
 }
 
 model TeacherAttendance {
-  id           String           @id @default(cuid())
-  teacherId    String
-  date         DateTime
-  status       AttendanceStatus @default(PRESENT)
-  checkInTime  DateTime?
-  checkOutTime DateTime?
-  notes        String?
-  createdAt    DateTime         @default(now())
-  updatedAt    DateTime         @updatedAt
+  id                String           @id @default(cuid())
+  teacherId         String
+  date              DateTime
+  status            AttendanceStatus @default(PRESENT)
+  checkInTime       DateTime?
+  checkInLatitude   Float?
+  checkInLongitude  Float?
+  checkInAccuracy   Float?
+  checkInPhotoUrl   String?
+  checkOutTime      DateTime?
+  checkOutLatitude  Float?
+  checkOutLongitude Float?
+  checkOutAccuracy  Float?
+  checkOutPhotoUrl  String?
+  classScheduleId   String?
+  notes             String?
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 
-  teacher      Teacher          @relation(fields: [teacherId], references: [id], onDelete: Cascade)
+  teacher Teacher @relation(fields: [teacherId], references: [id], onDelete: Cascade)
 
-  @@unique([teacherId, date])
   @@index([date])
   @@index([teacherId, date])
+}
+
+model ClassSchedule {
+  id String @id @default(cuid())
+
+  @@ignore
+}
+
+model TeacherPayrollSetting {
+  id         String    @id @default(cuid())
+  period     String?
+  hourlyRate Float?
+  createdAt  DateTime?
+  updatedAt  DateTime?
+
+  @@ignore
 }
