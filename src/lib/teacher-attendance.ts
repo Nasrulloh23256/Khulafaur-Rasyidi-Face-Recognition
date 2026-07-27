@@ -217,6 +217,7 @@ export const ensureTeacherAttendanceTable = async () => {
         SET "classScheduleId" = single_schedule."scheduleId"
         FROM single_schedule
         WHERE attendance."id" = single_schedule."attendanceId"
+      `);
       await prisma.$executeRawUnsafe(`DROP INDEX IF EXISTS "TeacherAttendance_teacherId_date_key"`);
       await prisma.$executeRawUnsafe(`DROP INDEX IF EXISTS "TeacherAttendance_teacherId_classScheduleId_date_key"`);
       await prisma.$executeRawUnsafe(
