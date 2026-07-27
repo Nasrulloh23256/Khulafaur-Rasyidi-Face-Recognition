@@ -132,20 +132,28 @@ const buildRangeRecap = async (start: Date, end: Date) => {
       },
     }),
     prisma.teacherAttendance.findMany({
-      where: { date: { gte: start, lte: end }, classScheduleId: { not: null } },
-      select: { ...attendanceSelect, teacherId: true, classScheduleId: true },
+      where: { date: { gte: start, lte: end } },
+      select: {
+        ...attendanceSelect,
+        teacherId: true,
+        classScheduleId: true,
+        teacher: { select: { id: true, fullName: true, phone: true, user: { select: { email: true } } } },
+      },
+      orderBy: [{ date: "desc" }, { checkInTime: "desc" }],
     }),
     prisma.teacher.findMany({ orderBy: { fullName: "asc" }, select: { id: true, fullName: true } }),
   ]);
 
   const attendanceMap = new Map(
-    attendances.map((attendance) => [
-      `${attendance.teacherId}-${attendance.classScheduleId}-${formatDateKey(attendance.date)}`,
-      attendance,
-    ]),
+    attendances
+      .filter((a) => a.classScheduleId)
+      .map((attendance) => [
+        `${attendance.teacherId}-${attendance.classScheduleId}-${formatDateKey(attendance.date)}`,
+        attendance,
+      ]),
   );
 
-  const sessions = dates.flatMap((date) =>
+  const scheduledSessions = dates.flatMap((date) =>
     schedules
       .filter((schedule) => schedule.dayOfWeek === getScheduleDayOfWeek(date) && schedule.teacher)
       .map((schedule) => {
@@ -164,6 +172,26 @@ const buildRangeRecap = async (start: Date, end: Date) => {
           status: getTeacherAttendanceStatus(attendance),
         };
       }),
+  );
+
+  const unlinkedAttendances = attendances
+    .filter((a) => !a.classScheduleId || !scheduledSessions.some((s) => s.attendance?.id === a.id))
+    .map((attendance) => ({
+      date: formatDateKey(attendance.date),
+      teacher: attendance.teacher,
+      schedule: {
+        id: attendance.id,
+        classId: "",
+        className: "Umum",
+        startTime: attendance.checkInTime ? formatTeacherAttendanceTime(attendance.checkInTime) ?? "-" : "-",
+        endTime: attendance.checkOutTime ? formatTeacherAttendanceTime(attendance.checkOutTime) ?? "-" : "-",
+      },
+      attendance: serializeTeacherAttendance(attendance),
+      status: getTeacherAttendanceStatus(attendance),
+    }));
+
+  const sessions = [...scheduledSessions, ...unlinkedAttendances].sort(
+    (a, b) => b.date.localeCompare(a.date) || (b.attendance?.checkInTime ?? "").localeCompare(a.attendance?.checkInTime ?? ""),
   );
 
   return {
