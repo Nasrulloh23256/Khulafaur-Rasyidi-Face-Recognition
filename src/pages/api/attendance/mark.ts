@@ -94,7 +94,7 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
     return res.status(405).json({ error: "Method not allowed" });
   }
 
-  const { studentId, classId, status, photo, location } = req.body ?? {};
+  const { studentId, classId, status, photo, location, userRole } = req.body ?? {};
 
   if (typeof studentId !== "string" || studentId.trim() === "") {
     return res.status(400).json({ error: "Siswa tidak valid" });
@@ -140,10 +140,9 @@ export default async function handler(req: NextApiRequest, res: NextApiResponse)
   }
 
   const scheduleStatus = getClassAttendanceScheduleStatus(kelas.schedules);
-  if (scheduleStatus.configured && !scheduleStatus.isOpen) {
+  if (userRole !== "ADMIN" && scheduleStatus.configured && !scheduleStatus.isOpen) {
     return res.status(403).json({ error: scheduleStatus.message });
   }
-
   const date = startOfDay(new Date());
 
   const existing = await prisma.attendance.findUnique({

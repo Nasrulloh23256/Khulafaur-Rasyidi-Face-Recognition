@@ -120,6 +120,23 @@ const Kehadiran = () => {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
 
+  const [currentUser, setCurrentUser] = useState<{ role?: "ADMIN" | "TEACHER" } | null>(null);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const stored = window.localStorage.getItem("auth_user");
+    if (stored) {
+      try {
+        setCurrentUser(JSON.parse(stored));
+      } catch {
+        // ignore
+      }
+    }
+  }, []);
+
+  const isAdmin = currentUser?.role === "ADMIN";
+  const isScheduleBlocked = !isAdmin && scheduleStatus?.configured && !scheduleStatus.isOpen;
+
   const selectedClass = useMemo(
     () => classes.find((item) => item.id === selectedClassId),
     [classes, selectedClassId],
@@ -307,6 +324,7 @@ const Kehadiran = () => {
           status,
           photo: evidence?.photo,
           location: evidence?.location,
+          userRole: currentUser?.role,
         }),
       });
       const data = await response.json();
@@ -396,10 +414,10 @@ const Kehadiran = () => {
       });
       return;
     }
-    if (scheduleStatus?.configured && !scheduleStatus.isOpen) {
+    if (isScheduleBlocked) {
       toast({
         title: "Absensi belum dibuka",
-        description: scheduleStatus.message,
+        description: scheduleStatus?.message,
         variant: "destructive",
       });
       return;
@@ -540,13 +558,14 @@ const Kehadiran = () => {
         {scheduleStatus?.configured && (
           <div
             className={`rounded-lg border px-4 py-3 text-sm ${
-              scheduleStatus.isOpen
+              scheduleStatus.isOpen || isAdmin
                 ? "border-success/30 bg-success/10 text-success"
                 : "border-warning/30 bg-warning/10 text-warning-foreground"
             }`}
           >
             <span className="font-semibold">Jadwal kelas: </span>
             {scheduleStatus.message}
+            {isAdmin && <span className="ml-2 font-normal opacity-80">(Admin: Akses Penuh)</span>}
           </div>
         )}
 
@@ -640,7 +659,7 @@ const Kehadiran = () => {
                           <div className="mt-3 space-y-2">
                             <Select
                               value={currentStatus}
-                              disabled={isSaving || isAlreadyMarked || (scheduleStatus?.configured && !scheduleStatus.isOpen)}
+                              disabled={isSaving || isAlreadyMarked || isScheduleBlocked}
                               onValueChange={(value) => {
                                 if (value === "UNMARKED") return;
                                 if (value === "PRESENT") {
@@ -685,7 +704,7 @@ const Kehadiran = () => {
                               size="sm"
                               className="w-full gap-2"
                               onClick={() => openPhotoAttendance(siswa)}
-                              disabled={isSaving || isAlreadyMarked || (scheduleStatus?.configured && !scheduleStatus.isOpen)}
+                              disabled={isSaving || isAlreadyMarked || isScheduleBlocked}
                             >
                               <Camera className="h-4 w-4" />
                               Ambil Foto Hadir

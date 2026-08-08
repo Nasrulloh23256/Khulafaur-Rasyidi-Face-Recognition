@@ -52,7 +52,7 @@ const buildAttendanceMessage = (input: StudentAttendanceNotificationInput) =>
 
 const getFonnteDetail = (data: unknown, fallback: string) => {
   if (!data || typeof data !== "object") return fallback;
-  const detail = (data as { detail?: unknown }).detail;
+  const detail = (data as { detail?: unknown; reason?: unknown }).detail ?? (data as { reason?: unknown }).reason;
   return typeof detail === "string" && detail.trim() !== "" ? detail : fallback;
 };
 
@@ -62,13 +62,22 @@ const getFonnteMessageId = (data: unknown) => {
   return Array.isArray(id) && typeof id[0] === "string" ? id[0] : undefined;
 };
 
-const sendFonnteRequest = async (config: ReturnType<typeof getFonnteConfig>, formData: FormData) => {
+const sendFonnteRequest = async (config: ReturnType<typeof getFonnteConfig>, params: URLSearchParams) => {
   try {
+    const controller = new AbortController();
+    const timeoutId = setTimeout(() => controller.abort(), 12000);
+
     const response = await fetch(config.apiUrl, {
       method: "POST",
-      headers: { Authorization: config.token },
-      body: formData,
+      headers: {
+        Authorization: config.token,
+        "Content-Type": "application/x-www-form-urlencoded",
+      },
+      body: params.toString(),
+      signal: controller.signal,
     });
+    clearTimeout(timeoutId);
+
     const data: unknown = await response.json().catch(() => null);
     const isSuccess =
       response.ok &&
@@ -79,25 +88,38 @@ const sendFonnteRequest = async (config: ReturnType<typeof getFonnteConfig>, for
     if (!isSuccess) {
       return {
         success: false as const,
-        reason: getFonnteDetail(data, `Fonnte API error ${response.status}`),
+        reason: getFonnteDetail(data, `Fonnte API error HTTP ${response.status}`),
       };
     }
 
     return { success: true as const, providerMessageId: getFonnteMessageId(data) };
   } catch (error) {
+    let reason = "Gagal mengirim WhatsApp melalui Fonnte";
+    if (error instanceof Error) {
+      if (error.name === "AbortError") {
+        reason = "Koneksi ke Fonnte timeout (lebih dari 12 detik). Periksa koneksi internet.";
+      } else if (error.message === "fetch failed") {
+        const cause = (error as Error & { cause?: { code?: string; message?: string } }).cause;
+        const detail = cause?.code || cause?.message || "";
+        reason = detail
+          ? `Gagal terhubung ke Fonnte (${detail}). Pastikan koneksi internet aktif dan api.fonnte.com dapat diakses.`
+          : "Gagal terhubung ke server Fonnte (api.fonnte.com). Pastikan server/aplikasi memiliki koneksi internet.";
+      } else {
+        reason = error.message;
+      }
+    }
     return {
       success: false as const,
-      reason: error instanceof Error ? error.message : "Gagal mengirim WhatsApp melalui Fonnte",
+      reason,
     };
   }
 };
 
-const createFonnteFormData = (target: string) => {
-  const formData = new FormData();
-  formData.set("target", target);
-  formData.set("countryCode", "0");
-  formData.set("connectOnly", "true");
-  return formData;
+const createFonnteParams = (target: string) => {
+  const params = new URLSearchParams();
+  params.set("target", target);
+  params.set("countryCode", "62");
+  return params;
 };
 
 export const sendStudentAttendanceWhatsApp = async (
@@ -110,19 +132,19 @@ export const sendStudentAttendanceWhatsApp = async (
       skipped: true,
       reason:
         config.explicitEnabled === "false"
-          ? "FONNTE_ENABLED bernilai false pada deployment Vercel"
-          : "FONNTE_TOKEN belum terbaca pada deployment Vercel",
+          ? "FONNTE_ENABLED bernilai false di .env"
+          : "FONNTE_TOKEN belum dikonfigurasi di .env. Silakan isi FONNTE_TOKEN dari Fonnte.com",
     };
   }
 
   const to = normalizeWhatsAppPhone(input.to);
   if (!to) {
-    return { sent: false, skipped: true, reason: "Nomor WhatsApp orang tua kosong" };
+    return { sent: false, skipped: true, reason: "Nomor WhatsApp orang tua/wali belum diisi pada data siswa" };
   }
 
-  const messageFormData = createFonnteFormData(to);
-  messageFormData.set("message", buildAttendanceMessage(input));
-  const messageResult = await sendFonnteRequest(config, messageFormData);
+  const messageParams = createFonnteParams(to);
+  messageParams.set("message", buildAttendanceMessage(input));
+  const messageResult = await sendFonnteRequest(config, messageParams);
   if (!messageResult.success) {
     return {
       sent: false,
@@ -131,9 +153,9 @@ export const sendStudentAttendanceWhatsApp = async (
     };
   }
 
-  const locationFormData = createFonnteFormData(to);
-  locationFormData.set("location", `${input.latitude},${input.longitude}`);
-  const locationResult = await sendFonnteRequest(config, locationFormData);
+  const locationParams = createFonnteParams(to);
+  locationParams.set("location", `${input.latitude},${input.longitude}`);
+  const locationResult = await sendFonnteRequest(config, locationParams);
   if (!locationResult.success) {
     return {
       sent: true,
@@ -145,3 +167,4 @@ export const sendStudentAttendanceWhatsApp = async (
 
   return { sent: true, providerMessageId: messageResult.providerMessageId, locationSent: true };
 };
+

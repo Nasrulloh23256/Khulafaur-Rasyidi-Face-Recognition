@@ -85,19 +85,17 @@ export const formatClassSchedules = (
     .join(", ");
 
 const getJakartaClock = (date: Date) => {
-  const parts = new Intl.DateTimeFormat("en-US", {
-    timeZone: "Asia/Jakarta",
-    weekday: "short",
-    hour: "2-digit",
-    minute: "2-digit",
-    hourCycle: "h23",
-  }).formatToParts(date);
-  const values = Object.fromEntries(parts.map((part) => [part.type, part.value]));
-  const weekday: Record<string, number> = { Mon: 0, Tue: 1, Wed: 2, Thu: 3, Fri: 4, Sat: 5, Sun: 6 };
+  // Asia/Jakarta is UTC+7 (7 * 60 * 60 * 1000 = 25,200,000 ms)
+  const wibTime = new Date(date.getTime() + 7 * 60 * 60 * 1000);
+  const utcDay = wibTime.getUTCDay(); // 0 = Sunday, 1 = Monday, 2 = Tuesday... 6 = Saturday
+  // Map JS UTC day (Sun=0, Mon=1... Sun=6) to scheduleDays index (Mon=0, Tue=1... Sun=6):
+  const dayOfWeek = utcDay === 0 ? 6 : utcDay - 1;
+  const hours = wibTime.getUTCHours();
+  const minutes = wibTime.getUTCMinutes();
 
   return {
-    dayOfWeek: weekday[values.weekday] ?? 0,
-    minutes: Number(values.hour) * 60 + Number(values.minute),
+    dayOfWeek,
+    minutes: hours * 60 + minutes,
   };
 };
 
